@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
-from os.path import join
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -21,12 +21,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-REDACTED-ROTATED'
+# The default value is kept for local development only; override it in
+# production via the DJANGO_SECRET_KEY environment variable.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-REDACTED-ROTATED',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('DJANGO_ALLOWED_HOSTS', '').split(',')
+    if host.strip()
+]
 
 
 # Application definition
@@ -80,11 +89,11 @@ WSGI_APPLICATION = 'datastudio.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'DataStudio',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'DataStudio'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -130,4 +139,19 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-MEDIA_DIR = join(BASE_DIR, "backups")
+# Authentication
+# Unauthenticated users hitting @login_required views are sent here.
+LOGIN_URL = '/auth/login'
+
+# Directory where generated backup files (*.sql) are stored.
+MEDIA_DIR = BASE_DIR / 'backups'
+
+# Path to the PostgreSQL ``pg_dump`` executable used for full backups.
+# Override with the PG_DUMP_PATH environment variable when it lives elsewhere.
+PG_DUMP_PATH = os.environ.get(
+    'PG_DUMP_PATH',
+    r'C:\Program Files\PostgreSQL\17\bin\pg_dump.exe',
+)
+
+# Network timeout (seconds) for connecting to remote PostgreSQL servers.
+DB_CONNECT_TIMEOUT = int(os.environ.get('DB_CONNECT_TIMEOUT', '5'))

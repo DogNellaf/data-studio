@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
-from datetime import datetime as dt
+from django.utils import timezone
+
 
 class BackupType(models.Model):
     '''Класс реализует тип резервных копий'''
@@ -13,7 +14,12 @@ class BackupType(models.Model):
         verbose_name = "Тип резервной копии"
         verbose_name_plural = "Типы резервных копий"
 
+    def __str__(self):
+        return self.title
+
+
 class StorageType(models.Model):
+    '''Класс реализует тип хранилища'''
     title = models.CharField(
         verbose_name="Название",
         max_length=100
@@ -23,7 +29,12 @@ class StorageType(models.Model):
         verbose_name = "Тип хранилища"
         verbose_name_plural = "Типы хранилищ"
 
+    def __str__(self):
+        return self.title
+
+
 class Storage(models.Model):
+    '''Класс реализует хранилище резервных копий'''
     location = models.CharField(
         verbose_name="Местоположение",
         max_length=255
@@ -39,7 +50,12 @@ class Storage(models.Model):
         verbose_name = "Хранилище"
         verbose_name_plural = "Хранилища"
 
+    def __str__(self):
+        return f"{self.location} - {self.type.title}"
+
+
 class Backup(models.Model):
+    '''Класс реализует резервную копию базы данных'''
     username = models.CharField(
         verbose_name="Имя пользователя для подключения",
         max_length=255
@@ -73,7 +89,7 @@ class Backup(models.Model):
 
     type = models.ForeignKey(
         BackupType,
-        verbose_name="Тип хранилища",
+        verbose_name="Тип резервной копии",
         on_delete=models.CASCADE
     )
 
@@ -85,9 +101,13 @@ class Backup(models.Model):
 
     created_at = models.DateTimeField(
         verbose_name="Дата и время создания",
-        default=dt.now()
+        default=timezone.now
     )
 
     class Meta:
         verbose_name = "Резервная копия"
         verbose_name_plural = "Резервные копии"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.type.title} — {self.db}@{self.ip} ({self.created_at:%Y-%m-%d %H:%M})"
