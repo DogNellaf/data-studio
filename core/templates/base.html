@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <link rel="preconnect" href="https://fonts.gstatic.com/" crossorigin="" />
+        <link rel="stylesheet" as="style" onload="this.rel='stylesheet'" href="https://fonts.googleapis.com/css2?display=swap&amp;family=Manrope%3Awght%40400%3B500%3B700%3B800&amp;family=Noto+Sans%3Awght%40400%3B500%3B700%3B900" />
+        <title>{% block title %} {% endblock %}</title>
+        <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64," />
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    </head>
+    <body>
+        <div class="relative flex size-full min-h-screen flex-col bg-white dark group/design-root overflow-x-hidden" style="--checkbox-tick-svg: url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27rgb(255,255,255)%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e'); font-family: Manrope, &quot;Noto Sans&quot;, sans-serif;">
+            <div class="layout-container flex h-full grow flex-col">
+                <header class="flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#283139] px-10 py-3">
+                    <div class="flex items-center gap-4">
+                        <div class="size-4">
+                            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <g clip-path="url(#clip0_6_330)">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M24 0.757355L47.2426 24L24 47.2426L0.757355 24L24 0.757355ZM21 35.7574V12.2426L9.24264 24L21 35.7574Z" fill="currentColor"></path>
+                                </g>
+                                <defs>
+                                    <clipPath id="clip0_6_330">
+                                        <rect width="48" height="48" fill="white"></rect>
+                                    </clipPath>
+                                </defs>
+                            </svg>
+                        </div>
+                        <h2 class="text-lg font-bold leading-tight tracking-[-0.015em]">DataStudio</h2>
+                    </div>
+                    <div class="flex gap-5">
+                        {% if request.user.is_authenticated %}
+                            <a href="{% url 'core.index' %}">Копии</a>
+                            <a href="{% url 'core.backup_types' %}">Типы копий</a>
+                            <a href="{% url 'core.storages' %}">Хранилища</a>
+                            <a href="{% url 'custom_auth.profile' %}">Профиль</a>
+                            <a href="{% url 'custom_auth.logout' %}">Выйти</a>
+                        {% else %}
+                            <a href="{% url 'custom_auth.login' %}">Войти</a>
+                        {% endif %}
+                    </div>
+                </header>
+                <div class="px-40 flex flex-1 justify-center py-5">
+                    {% block content %} {% endblock %}
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

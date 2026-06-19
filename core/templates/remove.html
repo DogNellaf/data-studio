@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %} Удаление копии {% endblock %}
+{% block content %}
+    <form class="layout-container flex h-full grow flex-col" action="" method="POST">
+        {% csrf_token %}
+        <div class="px-40 flex flex-1 justify-center py-5">
+            <div class="layout-content-container flex flex-col w-[512px] py-5 flex-1">
+                <div class="flex flex-wrap justify-between gap-3 p-4">
+                    <p class="text-[#171111] tracking-light text-[32px] font-bold leading-tight min-w-72">Удаление резервной копии</p>
+                </div>
+                <h3 class="text-[#171111] text-lg font-bold leading-tight tracking-[-0.015em] px-4 pb-2 pt-4">Вы уверены, что хотите удалить эту резервную копию?</h3>
+                <div class="p-4 grid grid-cols-2">
+                    <div class="flex flex-col gap-1 border-t border-solid border-t-[#e5dcdc] py-4 pr-2">
+                        <p class="text-[#876464] text-sm font-normal leading-normal">Пользователь</p>
+                        <p class="text-[#171111] text-sm font-normal leading-normal">{{ backup.username }}</p>
+                    </div>
+                    <div class="flex flex-col gap-1 border-t border-solid border-t-[#e5dcdc] py-4 pl-2">
+                        <p class="text-[#876464] text-sm font-normal leading-normal">База данных</p>
+                        <p class="text-[#171111] text-sm font-normal leading-normal">{{ backup.db }}</p>
+                    </div>
+                    <div class="flex flex-col gap-1 border-t border-solid border-t-[#e5dcdc] py-4 pr-2">
+                        <p class="text-[#876464] text-sm font-normal leading-normal">IP адрес</p>
+                        <p class="text-[#171111] text-sm font-normal leading-normal">{{ backup.ip }}</p>
+                    </div>
+                    <div class="flex flex-col gap-1 border-t border-solid border-t-[#e5dcdc] py-4 pl-2">
+                        <p class="text-[#876464] text-sm font-normal leading-normal">Тип резервной копии</p>
+                        <p class="text-[#171111] text-sm font-normal leading-normal">{{ backup.type.title }}</p>
+                    </div>
+                    <div class="flex flex-col gap-1 border-t border-solid border-t-[#e5dcdc] py-4 pr-2">
+                        <p class="text-[#876464] text-sm font-normal leading-normal">Порт</p>
+                        <p class="text-[#171111] text-sm font-normal leading-normal">{{ backup.port }}</p>
+                    </div>
+                    <div class="flex flex-col gap-1 border-t border-solid border-t-[#e5dcdc] py-4 pl-2">
+                        <p class="text-[#876464] text-sm font-normal leading-normal">Хранилище</p>
+                        <p class="text-[#171111] text-sm font-normal leading-normal">{{ backup.storage.location }} - {{ backup.storage.type.title }}</p>
+                    </div>
+                </div>
+                <div class="flex justify-stretch">
+                    <div class="flex flex-1 gap-3 flex-wrap px-4 py-3 justify-end">
+                        <a href="{% url 'core.index' %}" class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#f4f0f0] text-[#171111] text-sm font-bold leading-normal tracking-[0.015em]"> <span class="truncate">Отмена</span> </a>
+                        <button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#df2020] text-white text-sm font-bold leading-normal tracking-[0.015em]"> <span class="truncate">Удалить</span> </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+{% endblock %}

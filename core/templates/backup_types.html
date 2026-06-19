@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %} Вход в систему {% endblock %}
+{% block content %}
+<div class="layout-content-container flex flex-col flex-1">
+	<div class="flex flex-wrap justify-between gap-3 p-4">
+		<p class="text-[#111418] tracking-light text-[32px] font-bold leading-tight min-w-72">Существующие типы копий</p>
+	</div>
+	<div class="px-4 py-3 @container">
+		<div class="flex overflow-hidden rounded-xl border border-[#dce0e5] bg-white">
+			<table class="flex-1">
+				<thead>
+					<tr class="bg-white">
+						<th class="table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-120 px-4 py-3 text-left text-[#111418] w-[400px] text-sm font-medium leading-normal">Название</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for type in types %}
+						<tr class="border-t border-t-[#dce0e5]">
+							<td class="table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-120 h-[72px] px-4 py-2 w-[400px] text-[#111418] text-sm font-normal leading-normal">{{ type.title }}</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		<style>
+		@container(max-width:120px) {
+			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-120 {
+				display: none;
+			}
+		}
+		
+		@container(max-width:240px) {
+			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-240 {
+				display: none;
+			}
+		}
+		
+		@container(max-width:360px) {
+			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-360 {
+				display: none;
+			}
+		}
+		
+		@container(max-width:480px) {
+			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-480 {
+				display: none;
+			}
+		}
+		
+		@container(max-width:600px) {
+			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-600 {
+				display: none;
+			}
+		}
+		
+		@container(max-width:720px) {
+			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-720 {
+				display: none;
+			}
+		}
+		
+		@container(max-width:840px) {
+			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-840 {
+				display: none;
+			}
+		}
+		</style>
+	</div> 
+{% endblock %}
