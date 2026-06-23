@@ -1,64 +1,110 @@
 # DataStudio
 
-Веб-приложение на Django для управления резервными копиями баз данных
-PostgreSQL: полное (`pg_dump`), инкрементальное и дифференциальное копирование
-с разграничением доступа по пользователям.
+> 🇬🇧 English | [🇷🇺 Русский](README.ru.md)
 
-## Возможности
+A Django web application for managing PostgreSQL database backups: full (`pg_dump`), incremental, and differential backups with per-user access control.
 
-- Регистрация, вход, редактирование профиля.
-- Создание резервных копий трёх типов (полная / инкрементальная /
-  дифференциальная) с проверкой соединения с исходной БД.
-- Просмотр, скачивание и удаление собственных копий.
-- Справочники типов копий и хранилищ.
+## Features
 
-## Структура проекта
+- User registration, login, and profile editing
+- Three backup types (full / incremental / differential) with source database connection validation
+- View, download, and delete your own backups
+- Reference directories for backup types and storage locations
 
-| Приложение    | Назначение                                              |
-|---------------|---------------------------------------------------------|
-| `core`        | Модели, представления и страницы управления копиями.    |
-| `custom_auth` | Регистрация, вход, профиль, выход.                      |
-| `backuper`    | Утилиты создания резервных копий (`backuper/utils.py`). |
+## Tech Stack
 
-## Установка
+| Layer | Technology |
+|---|---|
+| Backend | Python 3, Django |
+| Application database | PostgreSQL |
+| Backup tool | `pg_dump` (PostgreSQL 17) |
+
+## Requirements
+
+- Python 3.10+
+- pip
+- PostgreSQL (for the application database and backups)
+
+## Installation
 
 ```bash
+# Clone the repository
+git clone <repository-url>
+cd datastudio
+
+# Create and activate a virtual environment
+python -m venv .venv
+source .venv/bin/activate      # Linux / macOS
+.venv\Scripts\activate         # Windows
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-## Настройка через переменные окружения
-
-Значения по умолчанию подходят для локальной разработки; в продакшене их
-следует переопределить:
-
-| Переменная            | Назначение                          | По умолчанию          |
-|-----------------------|-------------------------------------|-----------------------|
-| `DJANGO_SECRET_KEY`   | Секретный ключ Django               | dev-ключ              |
-| `DJANGO_DEBUG`        | Режим отладки                       | `True`                |
-| `DJANGO_ALLOWED_HOSTS`| Разрешённые хосты (через запятую)   | пусто                 |
-| `DB_NAME` / `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` | Подключение к БД приложения | `DataStudio` / `postgres` / `postgres` / `localhost` / `5432` |
-| `PG_DUMP_PATH`        | Путь к `pg_dump`                    | `C:\Program Files\PostgreSQL\17\bin\pg_dump.exe` |
-| `DB_CONNECT_TIMEOUT`  | Таймаут подключения к удалённой БД  | `5` сек               |
-
-## Запуск
-
-```bash
+# Apply migrations
 python manage.py migrate
+
+# Create an admin account
 python manage.py createsuperuser
+
+# Run the development server
 python manage.py runserver
 ```
 
-## Тесты
+The application will be available at `http://127.0.0.1:8000/`.
 
-Тесты используют SQLite в памяти и не требуют работающего PostgreSQL:
+## Environment Variables
+
+Defaults are suitable for local development; override them in production:
+
+| Variable | Description | Default |
+|---|---|---|
+| `DJANGO_SECRET_KEY` | Django secret key | insecure dev key |
+| `DJANGO_DEBUG` | Enable debug mode | `True` |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated list of allowed hosts | _(empty)_ |
+| `DB_NAME` | Application database name | `DataStudio` |
+| `DB_USER` | Database user | `postgres` |
+| `DB_PASSWORD` | Database password | `postgres` |
+| `DB_HOST` | Database host | `localhost` |
+| `DB_PORT` | Database port | `5432` |
+| `PG_DUMP_PATH` | Path to the `pg_dump` executable | `C:\Program Files\PostgreSQL\17\bin\pg_dump.exe` |
+| `DB_CONNECT_TIMEOUT` | Remote database connection timeout | `5` s |
+
+## Running Tests
+
+Tests use an in-memory SQLite database and do not require a running PostgreSQL instance:
 
 ```bash
 python manage.py test --settings=datastudio.settings_test
 ```
 
-Покрытие:
+Coverage report:
 
 ```bash
 coverage run --source="core,custom_auth,backuper,datastudio" manage.py test --settings=datastudio.settings_test
 coverage report -m
 ```
+
+## Project Structure
+
+```
+datastudio/
+├── datastudio/          # Django project settings and root URL conf
+├── core/                # Backup management: models, views, and pages
+│   ├── migrations/
+│   ├── templates/
+│   ├── models.py
+│   ├── views.py
+│   └── admin.py
+├── custom_auth/         # Registration, login, profile, logout
+│   ├── templates/
+│   ├── views.py
+│   └── forms.py
+├── backuper/            # Backup creation utilities
+│   └── utils.py
+├── manage.py
+└── requirements.txt
+```
+
+## License
+
+[MIT](LICENSE)
