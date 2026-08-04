@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- DataStudio ---
+
+# Generated backup files. They contain dumps of other people's databases,
+# including user rows and password hashes, and must never be committed.
+backups/
+media/
+*.sql
+
+# Collected static files
+staticfiles/
