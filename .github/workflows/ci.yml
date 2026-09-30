@@ -12,8 +12,8 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install ruff==0.16.9
@@ -37,8 +37,8 @@ jobs:
       # Интеграционные тесты гоняют настоящий pg_dump/psql против сервиса.
       INTEGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -62,12 +62,12 @@ jobs:
   docker:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build image
         run: docker build -t datastudio .
       - name: Smoke test with docker compose
         run: |
-          docker compose up -d --build --wait
+          docker compose up -d --build --wait --wait-timeout 120
           curl -fsS -o /dev/null http://localhost:8000/auth/login
           docker compose exec -T app pg_dump --version
       - name: Logs on failure

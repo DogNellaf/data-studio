@@ -27,6 +27,14 @@ services:
       DEMO_PASSWORD: demo12345
     volumes:
       - backups:/app/backups
+    # Готовность — когда gunicorn отвечает, а не когда стартовал контейнер:
+    # до этого entrypoint ещё применяет миграции. В образе нет curl.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/auth/login', timeout=3)"]
+      interval: 3s
+      timeout: 5s
+      start_period: 10s
+      retries: 20
     depends_on:
       app-db:
         condition: service_healthy
