@@ -1,0 +1,7 @@
+{% if form.non_field_errors %}
+<div class="alerts" role="alert">
+  {% for error in form.non_field_errors %}
+  <div class="alert alert--error">{% include "icons/alert.svg" %}<span>{{ error }}</span></div>
+  {% endfor %}
+</div>
+{% endif %}

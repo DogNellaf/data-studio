@@ -1,71 +1,35 @@
 {% extends "base.html" %}
-{% block title %} Вход в систему {% endblock %}
+{% block title %}Хранилища{% endblock %}
 {% block content %}
-<div class="layout-content-container flex flex-col flex-1">
-	<div class="flex flex-wrap justify-between gap-3 p-4">
-		<p class="text-[#111418] tracking-light text-[32px] font-bold leading-tight min-w-72">Существующие хранилища</p>
-	</div>
-	<div class="px-4 py-3 @container">
-		<div class="flex overflow-hidden rounded-xl border border-[#dce0e5] bg-white">
-			<table class="flex-1">
-				<thead>
-					<tr class="bg-white">
-						<th class="table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-120 px-4 py-3 text-left text-[#111418] w-[400px] text-sm font-medium leading-normal">Местоположение</th>
-                        <th class="table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-240 px-4 py-3 text-left text-[#111418] w-[400px] text-sm font-medium leading-normal">Тип</th>
-                    </tr>
-				</thead>
-				<tbody>
-					{% for storage in storages %}
-						<tr class="border-t border-t-[#dce0e5]">
-							<td class="table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-120 h-[72px] px-4 py-2 w-[400px] text-[#111418] text-sm font-normal leading-normal">{{ storage.location }}</td>
-							<td class="table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-240 h-[72px] px-4 py-2 w-[400px] text-[#637588] text-sm font-normal leading-normal">{{ storage.type.title }}</td>
-						</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
-		<style>
-		@container(max-width:120px) {
-			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-120 {
-				display: none;
-			}
-		}
-		
-		@container(max-width:240px) {
-			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-240 {
-				display: none;
-			}
-		}
-		
-		@container(max-width:360px) {
-			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-360 {
-				display: none;
-			}
-		}
-		
-		@container(max-width:480px) {
-			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-480 {
-				display: none;
-			}
-		}
-		
-		@container(max-width:600px) {
-			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-600 {
-				display: none;
-			}
-		}
-		
-		@container(max-width:720px) {
-			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-720 {
-				display: none;
-			}
-		}
-		
-		@container(max-width:840px) {
-			.table-fce71a9a-8a21-490f-9d07-f2460c04ee6c-column-840 {
-				display: none;
-			}
-		}
-		</style>
-	</div> 
+<div class="page-head">
+  <div>
+    <h1>Хранилища</h1>
+    <p>Куда сохраняются файлы копий. Список ведёт администратор.</p>
+  </div>
+</div>
+
+<div class="card">
+{% if storages %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Местоположение</th><th>Тип</th><th class="num">Ваших копий</th></tr></thead>
+      <tbody>
+      {% for storage in storages %}
+        <tr>
+          <td class="cell-main">{{ storage.location }}</td>
+          <td class="cell-sub">{{ storage.type.title }}</td>
+          <td class="num">{{ storage.backup_count }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty">
+    {% include "icons/layers.svg" %}
+    <h2>Хранилищ нет</h2>
+    <p>Добавьте хранилище в панели администратора.</p>
+  </div>
+{% endif %}
+</div>
 {% endblock %}

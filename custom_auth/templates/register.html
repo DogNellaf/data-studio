@@ -1,39 +1,15 @@
-{% extends "base.html" %}
-{% block title %} Регистрация {% endblock %}
-{% block content %}
-  <form class="layout-content-container flex flex-col w-[512px] py-5 flex-1" action="" method="POST">
-    {% csrf_token %}
-    <h1 class="text-[22px] font-bold leading-tight tracking-[-0.015em] px-4 text-left pb-3 pt-5">Регистрация</h1>
-    <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-      {% if messages %}
-          {% for message in messages %}
-              <p{% if message.tags %} class="font-medium leading-normal pb-2"{% endif %} style="color: red;">{{ message }}</p>
-          {% endfor %}
-      {% endif %}
-    </div>
-    <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-      <label class="flex flex-col min-w-40 flex-1">
-        <p class="text-base font-medium leading-normal pb-2">Имя пользователя</p>
-        <input name="username" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="" placeholder="Введите имя пользователя"/>
-      </label>
-    </div>
-    <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-      <label class="flex flex-col min-w-40 flex-1">
-        <p class="text-base font-medium leading-normal pb-2">Пароль</p>
-        <input name="password" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="" type="password" placeholder="Введите пароль"/>
-      </label>
-    </div>
-    <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-      <label class="flex flex-col min-w-40 flex-1">
-        <p class="text-base font-medium leading-normal pb-2">Повторите пароль</p>
-        <input name="confirm_password" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="" type="password" placeholder="Повторите пароль"/>
-      </label>
-    </div>
-    <div class="flex px-4 py-3">
-      <button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 flex-1 bg-[#1980e6] text-white text-sm font-bold leading-normal tracking-[0.015em]">
-        <span class="truncate">Зарегистрироваться</span>
-      </button>
-    </div>
-    <a href="{% url 'custom_auth.login' %}" class="text-black text-sm font-normal leading-normal pb-3 pt-1 px-4 text-center underline">Уже есть аккаунт?</a>
-  </form>
+{% extends "auth_base.html" %}
+{% block title %}Регистрация{% endblock %}
+{% block auth_content %}
+<h2>Регистрация</h2>
+<p>Создайте учётную запись — это займёт полминуты.</p>
+<form class="form" method="post" novalidate>
+  {% csrf_token %}
+  {% include "partials/form_errors.html" %}
+  {% include "partials/field.html" with field=form.username %}
+  {% include "partials/field.html" with field=form.password1 %}
+  {% include "partials/field.html" with field=form.password2 %}
+  <button class="btn btn--primary btn--block" type="submit">Создать аккаунт</button>
+</form>
+<div class="auth__switch">Уже есть аккаунт? <a href="{% url 'custom_auth.login' %}">Войти</a></div>
 {% endblock %}

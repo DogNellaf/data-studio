@@ -1,0 +1,7 @@
+{% if messages %}
+<div class="alerts" role="status">
+  {% for message in messages %}
+  <div class="alert alert--{% if message.level_tag == 'error' %}error{% elif message.level_tag == 'success' %}success{% else %}info{% endif %}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}

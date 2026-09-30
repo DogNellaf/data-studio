@@ -1,60 +1,50 @@
 {% extends "base.html" %}
-{% block title %}Копии{% endblock %}
+{% block title %}Новая копия{% endblock %}
+{% block page_class %} page--narrow{% endblock %}
 {% block content %}
-  <form class="px-40 flex flex-1 justify-center" action="" method="POST">
-    {% csrf_token %}
-    <div class="layout-content-container flex flex-col w-[512px] py-5 flex-1">
-      <h1 class="text-[#111418] tracking-light text-[32px] font-bold leading-tight px-4 text-left pb-3 pt-6">Создание резервной копии</h1>
-      <div class="gap-4 px-4 py-3">
-        {% if messages %}
-            {% for message in messages %}
-                <p{% if message.tags %} class="font-medium leading-normal pb-2"{% endif %} style="color: red;">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-      </div>
-      <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-        <label class="flex flex-col min-w-40 flex-1">
-          <p class="text-[#111418] text-base font-medium leading-normal pb-2">Тип резервной копии</p>
-          <select name="type" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 bg-[image:--select-button-svg] placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal">
-            {% for type in backup_types %}
-              <option value="{{ type.id }}">{{ type.title }}</option>
-            {% endfor %}
-          </select>
-        </label>
-      </div>
-      <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-        <label class="flex flex-col min-w-40 flex-1">
-          <p class="text-[#111418] text-base font-medium leading-normal pb-2">Имя пользователя</p>
-          <input name="username" placeholder="Введите имя пользователя" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="{{ request.POST.username }}" /> </label>
-        <label class="flex flex-col min-w-40 flex-1">
-          <p class="text-[#111418] text-base font-medium leading-normal pb-2">Пароль</p>
-          <input name="password" placeholder="Введите пароль" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="{{ request.POST.password }}" /> </label>
-      </div>
-      <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-        <label class="flex flex-col min-w-40 flex-1">
-          <p class="text-[#111418] text-base font-medium leading-normal pb-2">Имя базы данных</p>
-          <input name="db" placeholder="Введите имя базы данных" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="{{ request.POST.db }}" /> </label>
-      </div>
-      <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-        <label class="flex flex-col min-w-40 flex-1">
-          <p class="text-[#111418] text-base font-medium leading-normal pb-2">IP-адрес (v4)</p>
-          <input name="ip" placeholder="Введите IP-адрес" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="{{ request.POST.ip }}" minlength="7" maxlength="15" size="15" pattern="^(?>(\d|[1-9]\d{2}|1\d\d|2[0-4]\d|25[0-5])\.){3}(?1)$"/> </label>
-        <label class="flex flex-col min-w-40 flex-1">
-          <p class="text-[#111418] text-base font-medium leading-normal pb-2">Порт</p>
-          <input name="port" placeholder="Введите порт" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal" value="{{ request.POST.port }}" type="number" min="0" max="99999" /> </label>
-      </div>
-      <div class="flex flex-wrap items-end gap-4 px-4 py-3">
-        <label class="flex flex-col min-w-40 flex-1">
-          <p class="text-[#111418] text-base font-medium leading-normal pb-2">Место хранения</p>
-          <select name="storage" class="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-[#111418] focus:outline-0 focus:ring-0 border border-[#dcdfe5] bg-white focus:border-[#dcdfe5] h-14 bg-[image:--select-button-svg] placeholder:text-[#637288] p-[15px] text-base font-normal leading-normal">
-            {% for storage in storages %}
-              <option value="{{ storage.id }}">{{ storage.location }} - {{ storage.type.title }}</option>
-            {% endfor %}
-          </select>
-        </label>
-      </div>
-      <div class="flex px-4 py-3">
-        <button class="flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 flex-1 bg-[#196be6] text-white text-sm font-bold leading-normal tracking-[0.015em]"> <span class="truncate">Создать</span> </button>
-      </div>
-    </form>
+<div class="page-head">
+  <div>
+    <h1>Новая резервная копия</h1>
+    <p>Приложение подключится к базе, проверит доступ и сразу снимет копию.</p>
+  </div>
+</div>
+
+<form class="card card--pad form" method="post" novalidate>
+  {% csrf_token %}
+  {% include "partials/form_errors.html" %}
+
+  <fieldset class="form-section" style="border:0;margin:0;padding:0">
+    <legend class="form-section__title" style="margin-bottom:12px">Способ копирования</legend>
+    <div class="choice-grid">
+      {% for choice in form.type %}
+      <label class="choice">
+        {{ choice.tag }}
+        <span><strong>{{ choice.choice_label }}</strong><small>{{ choice.data.value.instance.hint }}</small></span>
+      </label>
+      {% endfor %}
+    </div>
+    {% for error in form.type.errors %}<div class="field__error">{{ error }}</div>{% endfor %}
+  </fieldset>
+
+  <div class="form-section">
+    <div class="form-section__title">Подключение к PostgreSQL</div>
+    <div class="form-row form-row--host">
+      {% include "partials/field.html" with field=form.host %}
+      {% include "partials/field.html" with field=form.port %}
+    </div>
+    {% include "partials/field.html" with field=form.db %}
+    <div class="form-row">
+      {% include "partials/field.html" with field=form.username %}
+      {% include "partials/field.html" with field=form.password %}
+    </div>
+  </div>
+
+  <div class="form-section">
+    {% include "partials/field.html" with field=form.storage %}
+    <div class="form-actions">
+      <a class="btn btn--ghost" href="{% url 'core.index' %}">Отмена</a>
+      <button class="btn btn--primary" type="submit">Снять копию</button>
+    </div>
+  </div>
+</form>
 {% endblock %}

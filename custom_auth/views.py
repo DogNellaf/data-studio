@@ -1,97 +1,50 @@
 from django.contrib import messages
-from django.contrib.auth import (
-    authenticate,
-    login as auth_login,
-    logout as auth_logout,
-    update_session_auth_hash,
-)
+from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth.views import LoginView, LogoutView
 from django.shortcuts import redirect, render
+from django.views.decorators.http import require_http_methods
 
-LOGIN_URL = "/auth/login"
+from custom_auth.forms import LoginForm, ProfileForm, RegisterForm
 
+login = LoginView.as_view(
+    template_name="login.html",
+    authentication_form=LoginForm,
+    redirect_authenticated_user=True,
+)
 
-def login(request):
-    if request.method != "POST":
-        return render(request, "login.html")
-
-    username = request.POST.get("login")
-    password = request.POST.get("password")
-
-    user = authenticate(request, username=username, password=password)
-    if user is None:
-        messages.error(request, "Неверный логин или пароль")
-        return render(request, "login.html")
-
-    auth_login(request, user)
-    return redirect("/auth/profile")
+# Выход только POST-запросом: GET-ссылку можно подсунуть в <img> на чужой
+# странице и разлогинить пользователя (Django 5 требует того же).
+logout = LogoutView.as_view()
 
 
+@require_http_methods(["GET", "POST"])
 def register(request):
-    if request.method != "POST":
-        return render(request, "register.html")
+    if request.user.is_authenticated:
+        return redirect("core.index")
 
-    username = request.POST.get("username")
-    password = request.POST.get("password")
-    confirm_password = request.POST.get("confirm_password")
+    form = RegisterForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "Регистрация прошла успешно, теперь можно войти")
+        return redirect("custom_auth.login")
 
-    if not username:
-        messages.error(request, "Не указано имя пользователя")
-        return render(request, "register.html")
-
-    if not password:
-        messages.error(request, "Не указан пароль")
-        return render(request, "register.html")
-
-    if password != confirm_password:
-        messages.error(request, "Пароли не совпадают")
-        return render(request, "register.html")
-
-    if User.objects.filter(username=username).exists():
-        messages.error(request, "Пользователь с таким логином уже существует")
-        return render(request, "register.html")
-
-    User.objects.create_user(username=username, password=password)
-    messages.success(request, "Регистрация прошла успешно! Вы можете войти.")
-    return redirect("/auth/login")
+    return render(request, "register.html", {"form": form})
 
 
-@login_required(login_url=LOGIN_URL, redirect_field_name=None)
+@login_required
+@require_http_methods(["GET", "POST"])
 def profile(request):
-    if request.method != "POST":
-        return render(request, "profile.html")
+    # Форма правит отдельную копию пользователя: ModelForm записывает введённые
+    # значения в instance ещё при валидации, и при ошибке в шапке страницы
+    # оказался бы неподтверждённый логин.
+    user = get_user_model().objects.get(pk=request.user.pk)
+    form = ProfileForm(request.POST or None, instance=user)
+    if request.method == "POST" and form.is_valid():
+        user = form.save()
+        # Смена пароля меняет хэш сессии — без обновления пользователя разлогинит.
+        update_session_auth_hash(request, user)
+        messages.success(request, "Данные профиля сохранены")
+        return redirect("custom_auth.profile")
 
-    user = request.user
-    username = request.POST.get("username")
-    password = request.POST.get("password")
-    confirm_password = request.POST.get("confirm_password")
-
-    if not username:
-        messages.error(request, "Не указано имя пользователя")
-        return render(request, "profile.html")
-
-    if User.objects.filter(username=username).exclude(id=user.id).exists():
-        messages.error(request, "Пользователь с таким логином уже существует")
-        return render(request, "profile.html")
-
-    # Пароль необязателен: пустое поле означает «оставить прежний».
-    if password:
-        if password != confirm_password:
-            messages.error(request, "Пароли не совпадают")
-            return render(request, "profile.html")
-        user.set_password(password)
-
-    user.username = username
-    user.save()
-
-    # set_password меняет хэш сессии — без обновления пользователя разлогинит.
-    update_session_auth_hash(request, user)
-
-    messages.info(request, "Данные профиля успешно изменены")
-    return render(request, "profile.html")
-
-
-def logout(request):
-    auth_logout(request)
-    return redirect("/auth/login")
+    return render(request, "profile.html", {"form": form})

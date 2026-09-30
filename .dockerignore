@@ -1,0 +1,15 @@
+.git
+.github
+.venv
+venv
+env
+.env
+__pycache__
+*.py[cod]
+.coverage
+htmlcov
+backups
+staticfiles
+docs
+*.sql
+!docker/demo-db/*.sql

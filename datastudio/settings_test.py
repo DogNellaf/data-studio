@@ -25,6 +25,13 @@ DATABASES = {
     }
 }
 
+# Манифест статики появляется только после collectstatic, которого в
+# тестах нет: используем обычное хранилище.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
 # Быстрый и предсказуемый хэшер паролей для тестов.
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",

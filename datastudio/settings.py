@@ -58,8 +58,10 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = env.int('DJANGO_SECURE_HSTS_SECONDS', default=31536000)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    # Disable only for a local plain-HTTP demo (docker compose on localhost).
+    SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = env.bool(
+        'DJANGO_SECURE_COOKIES', default=True
+    )
     # Behind a reverse proxy (nginx, or a PaaS router) TLS is terminated before
     # the request reaches Django, so the scheme has to be taken from the header
     # the proxy sets - otherwise SECURE_SSL_REDIRECT loops forever. Turn this
@@ -79,6 +81,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.humanize',
     'core',
     'custom_auth',
     'backuper'
@@ -86,6 +89,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Отдаёт собранную статику сам, без отдельного nginx.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -107,6 +112,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.app_info',
             ],
         },
     },
@@ -124,6 +130,7 @@ DATABASES = {
         default='postgres://postgres:postgres@localhost:5432/DataStudio',
     )
 }
+DATABASES['default']['CONN_MAX_AGE'] = env.int('DB_CONN_MAX_AGE', default=60)
 
 
 # Password validation
@@ -148,9 +155,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = env.str('DJANGO_TIME_ZONE', default='UTC')
 
 USE_I18N = True
 
@@ -164,6 +171,18 @@ STATIC_URL = 'static/'
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# In development static files are served straight from the apps, without a
+# collectstatic run.
+WHITENOISE_USE_FINDERS = DEBUG
+WHITENOISE_AUTOREFRESH = DEBUG
+
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
@@ -171,7 +190,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Authentication
 # Unauthenticated users hitting @login_required views are sent here.
-LOGIN_URL = '/auth/login'
+LOGIN_URL = 'custom_auth.login'
+LOGIN_REDIRECT_URL = 'core.index'
+LOGOUT_REDIRECT_URL = 'custom_auth.login'
 
 # Directory where generated backup files (*.sql) are stored. Kept as a plain
 # pathlib.Path so os.path.join / os.makedirs in the backup code keep working.
@@ -184,6 +205,15 @@ PG_DUMP_PATH = env.str('PG_DUMP_PATH', default='pg_dump')
 
 # Network timeout (seconds) for connecting to remote PostgreSQL servers.
 DB_CONNECT_TIMEOUT = env.int('DB_CONNECT_TIMEOUT', default=5)
+
+# Upper bound (seconds) for a single pg_dump run, so a stuck dump cannot hold
+# a worker forever.
+PG_DUMP_TIMEOUT = env.int('PG_DUMP_TIMEOUT', default=600)
+
+# Optional demo account shown on the login page of a public showcase instance.
+# Created by ``python manage.py seed_demo``; leave empty to hide the hint.
+DEMO_USERNAME = env.str('DEMO_USERNAME', default='')
+DEMO_PASSWORD = env.str('DEMO_PASSWORD', default='')
 
 
 # Logging

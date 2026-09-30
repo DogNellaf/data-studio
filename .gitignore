@@ -224,6 +224,7 @@ __marimo__/
 backups/
 media/
 *.sql
+!docker/demo-db/*.sql
 
 # Collected static files
 staticfiles/

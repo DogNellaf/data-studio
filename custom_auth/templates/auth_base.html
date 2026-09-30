@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="auth">
+  <aside class="auth__promo">
+    <a class="brand" href="{% url 'custom_auth.login' %}">{% include "icons/logo.svg" %}<span>DataStudio</span></a>
+    <div>
+      <h1>Резервные копии PostgreSQL без консоли и скриптов</h1>
+      <p>Подключите базу, выберите способ копирования — и получите файл, который можно скачать и восстановить.</p>
+      <ul class="auth__features">
+        <li>{% include "icons/layers.svg" %}<span>Полные копии через <code>pg_dump</code>, а также инкрементальные и дифференциальные</span></li>
+        <li>{% include "icons/shield.svg" %}<span>Пароли от баз не сохраняются, каждый пользователь видит только свои копии</span></li>
+        <li>{% include "icons/check.svg" %}<span>Проверка подключения до начала копирования и понятные ошибки</span></li>
+      </ul>
+    </div>
+    <div class="auth__foot">Django · PostgreSQL · Docker</div>
+  </aside>
+  <main class="auth__panel">
+    <div class="auth__box">
+      {% include "partials/messages.html" %}
+      {% block auth_content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}

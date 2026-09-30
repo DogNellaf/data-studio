@@ -1,7 +1,6 @@
 import logging
 
 import psycopg2
-
 from django.conf import settings
 
 logger = logging.getLogger(__name__)

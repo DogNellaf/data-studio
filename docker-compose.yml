@@ -1,0 +1,70 @@
+# Локальное демо: приложение, его база и демонстрационная база «shop»,
+# с которой можно снимать копии.
+#
+#     docker compose up --build
+#
+# Затем откройте http://localhost:8000 и войдите как demo / demo12345.
+# В форме создания копии укажите: хост demo-db, порт 5432, база shop,
+# пользователь shop, пароль shop.
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://datastudio:datastudio@app-db:5432/datastudio
+      # Только для локального демо. В продакшене задайте свой ключ.
+      DJANGO_SECRET_KEY: docker-compose-demo-key-change-me-0123456789abcdef
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000
+      # Демо работает по HTTP, без TLS-прокси.
+      DJANGO_SECURE_SSL_REDIRECT: "False"
+      DJANGO_SECURE_HSTS_SECONDS: "0"
+      DJANGO_SECURE_COOKIES: "False"
+      DJANGO_TIME_ZONE: Europe/Moscow
+      DEMO_USERNAME: demo
+      DEMO_PASSWORD: demo12345
+    volumes:
+      - backups:/app/backups
+    depends_on:
+      app-db:
+        condition: service_healthy
+      demo-db:
+        condition: service_healthy
+
+  app-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: datastudio
+      POSTGRES_USER: datastudio
+      POSTGRES_PASSWORD: datastudio
+    volumes:
+      - app-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datastudio -d datastudio"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  demo-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: shop
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD: shop
+    ports:
+      # Чтобы менять данные из psql и смотреть, как это отражается в дельтах:
+      #     psql postgres://shop:shop@localhost:5433/shop
+      - "5433:5432"
+    volumes:
+      - ./docker/demo-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop -d shop"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  app-db:
+  backups:

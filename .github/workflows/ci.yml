@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff==0.16.9
+      - run: ruff check .
+
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      # Интеграционные тесты гоняют настоящий pg_dump/psql против сервиса.
+      INTEGRATION_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+      - run: pip install -r requirements-dev.txt
+      - name: pg_dump version
+        run: pg_dump --version
+      - name: Migrations are up to date
+        run: python manage.py makemigrations --check --dry-run --settings=datastudio.settings_test
+      - name: Tests with coverage
+        run: |
+          coverage run --source=core,custom_auth,backuper,datastudio manage.py test --settings=datastudio.settings_test
+          coverage report -m --skip-covered
+      - name: Production settings pass deploy checks
+        env:
+          DJANGO_SECRET_KEY: ci-only-${{ github.run_id }}-0123456789abcdefghijklmnopqrstuvwxyz
+          DJANGO_ALLOWED_HOSTS: example.com
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+        run: python manage.py check --deploy --fail-level WARNING
+
+  docker:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t datastudio .
+      - name: Smoke test with docker compose
+        run: |
+          docker compose up -d --build --wait
+          curl -fsS -o /dev/null http://localhost:8000/auth/login
+          docker compose exec -T app pg_dump --version
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
