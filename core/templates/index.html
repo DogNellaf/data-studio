@@ -57,6 +57,7 @@
             {% if backup.status == "succeeded" %}
             <div>{{ backup.created_at|date:"SHORT_DATETIME_FORMAT" }}</div>
             <div class="cell-sub">{{ backup.created_at|naturaltime }}</div>
+            {% if backup.note %}<div class="cell-sub status-note">{{ backup.note }}</div>{% endif %}
             {% else %}
             <span class="status status--{{ backup.status }}">{{ backup.get_status_display }}</span>
             {% if backup.error_text %}<div class="cell-sub status-error">{{ backup.error_text }}</div>{% endif %}

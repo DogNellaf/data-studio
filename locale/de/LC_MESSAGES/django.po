@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 20:28+0000\n"
+"POT-Creation-Date: 2026-09-30 20:52+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -230,80 +230,95 @@ msgid "Technical details for administrators; not shown to users"
 msgstr "Technische Details für Administratoren; Benutzern nicht angezeigt"
 
 #: core/models.py:221
+msgid "taken as full because"
+msgstr "als Vollsicherung, weil"
+
+#: core/models.py:224
+msgid ""
+"Set when a requested delta could not be taken and a full backup was taken "
+"instead"
+msgstr ""
+"Gesetzt, wenn das angeforderte Delta nicht möglich war und stattdessen eine "
+"Vollsicherung erstellt wurde"
+
+#: core/models.py:228
 msgid "encrypted password"
 msgstr "verschlüsseltes Passwort"
 
-#: core/models.py:227
+#: core/models.py:234
 msgid "backup file"
 msgstr "Sicherungsdatei"
 
-#: core/models.py:233
+#: core/models.py:240
 msgid "state file"
 msgstr "Zustandsdatei"
 
-#: core/models.py:236
+#: core/models.py:243
 msgid "Row hashes that later deltas are compared with"
 msgstr "Zeilen-Hashes, mit denen spätere Deltas verglichen werden"
 
-#: core/models.py:240
+#: core/models.py:247
 msgid "file size, bytes"
 msgstr "Dateigröße, Bytes"
 
-#: core/models.py:246
+#: core/models.py:253
 msgid "created at"
 msgstr "erstellt am"
 
-#: core/models.py:251
+#: core/models.py:258
 msgid "started at"
 msgstr "gestartet am"
 
-#: core/models.py:257
+#: core/models.py:264
 msgid "finished at"
 msgstr "beendet am"
 
-#: core/models.py:263
+#: core/models.py:270
 msgid "backup"
 msgstr "Sicherung"
 
-#: core/models.py:264
+#: core/models.py:271
 msgid "backups"
 msgstr "Sicherungen"
 
-#: core/services.py:37
+#: core/services.py:36
 msgid "Could not connect to the database: check the address and credentials"
 msgstr "Keine Verbindung zur Datenbank: Adresse und Zugangsdaten prüfen"
 
-#: core/services.py:39 core/services.py:46
+#: core/services.py:38 core/services.py:41
 msgid "The backup failed, see the server log for details"
 msgstr "Die Sicherung ist fehlgeschlagen, Details im Serverprotokoll"
 
-#: core/services.py:41
-msgid ""
-"The database schema changed since the base backup: take a full backup first"
-msgstr ""
-"Das Datenbankschema hat sich seit der Basissicherung geändert: Erstellen Sie"
-" zuerst eine Vollsicherung"
-
-#: core/services.py:43
-msgid "There is no base backup to compare with: take a full backup first"
-msgstr ""
-"Keine Basissicherung zum Vergleich: Erstellen Sie zuerst eine Vollsicherung"
-
-#: core/services.py:44
+#: core/services.py:39
 msgid "The storage is not available"
 msgstr "Der Speicherort ist nicht verfügbar"
 
-#: core/services.py:45
+#: core/services.py:40
 msgid "The backup was interrupted, please try again"
 msgstr "Die Sicherung wurde unterbrochen, bitte erneut versuchen"
 
-#: core/services.py:53
+#: core/services.py:47
+msgid "Taken as a full backup: the base backup is gone"
+msgstr ""
+"Als Vollsicherung erstellt: Die Basissicherung ist nicht mehr vorhanden"
+
+#: core/services.py:48
+msgid "Taken as a full backup: the base backup predates change tracking"
+msgstr ""
+"Als Vollsicherung erstellt: Die Basissicherung stammt aus der Zeit vor der "
+"Änderungsverfolgung"
+
+#: core/services.py:49
+msgid "Taken as a full backup: the database schema changed"
+msgstr "Als Vollsicherung erstellt: Das Datenbankschema hat sich geändert"
+
+#: core/services.py:56
 msgid "An incremental backup needs a full backup of the same database first"
 msgstr ""
 "Für eine inkrementelle Sicherung wird zuerst eine Vollsicherung derselben "
 "Datenbank benötigt"
 
-#: core/services.py:56
+#: core/services.py:59
 msgid "A differential backup needs a full backup of the same database first"
 msgstr ""
 "Für eine differenzielle Sicherung wird zuerst eine Vollsicherung derselben "
@@ -446,29 +461,29 @@ msgstr "Erstellt"
 msgid "Actions"
 msgstr "Aktionen"
 
-#: core/templates/index.html:68
+#: core/templates/index.html:69
 msgid "Download"
 msgstr "Herunterladen"
 
-#: core/templates/index.html:68
+#: core/templates/index.html:69
 #, python-format
 msgid "Download backup of %(db)s"
 msgstr "Sicherung von %(db)s herunterladen"
 
-#: core/templates/index.html:71 core/templates/remove.html:28
+#: core/templates/index.html:72 core/templates/remove.html:28
 msgid "Delete"
 msgstr "Löschen"
 
-#: core/templates/index.html:71
+#: core/templates/index.html:72
 #, python-format
 msgid "Delete backup of %(db)s"
 msgstr "Sicherung von %(db)s löschen"
 
-#: core/templates/index.html:83
+#: core/templates/index.html:84
 msgid "No backups yet"
 msgstr "Noch keine Sicherungen"
 
-#: core/templates/index.html:84
+#: core/templates/index.html:85
 msgid ""
 "Start with a full backup: incremental and differential backups are built on "
 "top of it."
@@ -476,7 +491,7 @@ msgstr ""
 "Beginnen Sie mit einer Vollsicherung: Inkrementelle und differenzielle "
 "Sicherungen bauen darauf auf."
 
-#: core/templates/index.html:85
+#: core/templates/index.html:86
 msgid "Create your first backup"
 msgstr "Erste Sicherung erstellen"
 
@@ -539,32 +554,32 @@ msgstr "Keine Speicherorte"
 msgid "Add a storage in the admin panel."
 msgstr "Legen Sie im Adminbereich einen Speicherort an."
 
-#: core/views.py:44
+#: core/views.py:51
 msgid "This backup is not ready yet"
 msgstr "Diese Sicherung ist noch nicht fertig"
 
-#: core/views.py:51
+#: core/views.py:58
 msgid "The backup file is missing from the storage"
 msgstr "Die Sicherungsdatei fehlt im Speicherort"
 
-#: core/views.py:74
+#: core/views.py:81
 #, python-format
 msgid "Backup of “%(db)s” created"
 msgstr "Sicherung von „%(db)s“ erstellt"
 
-#: core/views.py:80
+#: core/views.py:87
 #, python-format
 msgid "Backup of “%(db)s” queued: it will appear below when ready"
 msgstr ""
 "Sicherung von „%(db)s“ eingereiht: Sie erscheint unten, sobald sie fertig "
 "ist"
 
-#: core/views.py:95
+#: core/views.py:102
 msgid "This backup is being taken right now; delete it when it finishes"
 msgstr ""
 "Diese Sicherung wird gerade erstellt; löschen Sie sie, wenn sie fertig ist"
 
-#: core/views.py:103
+#: core/views.py:110
 msgid "Backup deleted"
 msgstr "Sicherung gelöscht"
 

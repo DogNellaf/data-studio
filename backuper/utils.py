@@ -4,23 +4,26 @@
 Каждая копия состоит из двух файлов:
 
 * SQL-файл, который восстанавливается обычным ``psql -f``;
-* снимок состояния — сжатый JSON с хэшем каждой строки каждой таблицы,
-  сгруппированным по первичному ключу.
+* снимок состояния — zip-архив, где для каждой таблицы лежит
+  отсортированный поток хэшей строк: по первичному ключу, а для таблиц без
+  ключа — хэш строки с числом её повторов.
 
 Полная копия — это ``pg_dump``. Инкрементальная и дифференциальная копии
-сравнивают текущее состояние базы со снимком базовой копии и выгружают
-разницу: новые и изменённые строки как upsert-ы, исчезнувшие — как DELETE.
-Колонки вида ``updated_at`` для этого не нужны, поэтому в дельты попадают
-таблицы любых схем, и удаления тоже.
+сливают отсортированный поток текущих хэшей с потоком из снимка базовой
+копии (как merge join в СУБД) и выгружают разницу: новые и изменённые строки
+как upsert-ы или вставки, исчезнувшие — как DELETE. Память не зависит от
+размера таблиц: в ней держится только очередная пачка ключей.
 
 Модуль не зависит от моделей Django: на вход — параметры подключения и
 пути к локальным файлам, на выход — файлы или исключение ``BackupFailed``.
 """
-import gzip
+import io
 import json
 import logging
 import os
 import subprocess
+import tempfile
+import zipfile
 from collections import namedtuple
 from contextlib import contextmanager
 
@@ -29,7 +32,7 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-STATE_FORMAT = 1
+STATE_FORMAT = 2
 
 # Сколько ключей подставлять в один запрос или один DELETE.
 KEY_BATCH = 500
@@ -39,13 +42,22 @@ FETCH_SIZE = 5000
 
 # От этих настроек зависит текстовое представление значений: и хэши строк,
 # и литералы в SQL-файле должны получаться одинаковыми при любых настройках
-# сервера, иначе неизменённая строка выглядела бы изменённой.
-SESSION_SETUP = (
-    "SET TIME ZONE 'UTC';"
-    "SET datestyle = 'ISO, YMD';"
-    "SET intervalstyle = 'postgres';"
-    "SET extra_float_digits = 1;"
-    "SET bytea_output = 'hex';"
+# сервера, иначе неизменённая строка выглядела бы изменённой. Те же настройки
+# ставятся в начале дельты: удаление строк таблицы без ключа ищет их по хэшу
+# уже в восстанавливаемой базе.
+SESSION_SETTINGS = (
+    ("TIME ZONE", "'UTC'"),
+    ("datestyle", "'ISO, YMD'"),
+    ("intervalstyle", "'postgres'"),
+    ("extra_float_digits", "1"),
+    ("bytea_output", "'hex'"),
+)
+SESSION_SETUP = "".join(
+    f"SET {name} {'' if name == 'TIME ZONE' else '= '}{value};" for name, value in SESSION_SETTINGS
+)
+SESSION_SETUP_LOCAL = "".join(
+    f"SET LOCAL {name} {'' if name == 'TIME ZONE' else '= '}{value};\n"
+    for name, value in SESSION_SETTINGS
 )
 
 # Схемы, которые принадлежат самому PostgreSQL.
@@ -62,12 +74,16 @@ class BackupFailed(Exception):
 
     CONNECTION = "connection"
     DUMP = "dump"
-    SCHEMA_CHANGED = "schema_changed"
+    # Дельту снять нельзя, но полная копия всё исправит: изменилась схема
+    # или снимок базовой копии в старом формате.
+    NEEDS_FULL = "needs_full"
 
-    def __init__(self, code, detail=""):
+    def __init__(self, code, detail="", reason=""):
         super().__init__(f"{code}: {detail}" if detail else code)
         self.code = code
         self.detail = detail
+        # Для NEEDS_FULL: почему дельта невозможна (schema_changed, old_base).
+        self.reason = reason
 
 
 # --------------------------------------------------------------------------- #
@@ -100,12 +116,6 @@ def _literal_list(columns, alias="t"):
     """
     parts = ", ".join(f"quote_nullable({alias}.{_quote_identifier(c)})" for c in columns)
     return f"concat_ws(', ', {parts})"
-
-
-def _batches(items, size=KEY_BATCH):
-    items = list(items)
-    for start in range(0, len(items), size):
-        yield items[start:start + size]
 
 
 def _topological_order(tables, parents):
@@ -244,49 +254,108 @@ def _discover_tables(connection):
     return [tables[oid] for oid in _topological_order(list(tables), parents)]
 
 
-def _row_hashes(connection, table):
-    """Хэш каждой строки таблицы по её первичному ключу (литералом)."""
-    hashes = {}
-    with connection.cursor(name=f"hashes_{table.oid}") as cursor:
-        cursor.itersize = FETCH_SIZE
-        cursor.execute(
-            f"SELECT {_literal_list(table.key)}, md5(t::text) FROM {_qualified(table)} t;"
-        )
-        for key, digest in cursor:
-            hashes[key] = digest
-    return hashes
+# --------------------------------------------------------------------------- #
+#  Снимок состояния
+# --------------------------------------------------------------------------- #
+class StateWriter:
+    """Пишет снимок состояния потоково, по таблице за раз."""
+
+    def __init__(self, path):
+        self._zip = zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED)
+        self._tables = {}
+
+    @contextmanager
+    def table(self, table):
+        entry = f"t{len(self._tables):05d}.jsonl"
+        self._tables[_state_key(table)] = {
+            "columns": table.signature, "key": table.key, "entry": entry,
+        }
+        with self._zip.open(entry, "w") as raw, io.TextIOWrapper(raw, encoding="utf-8") as text:
+            yield lambda record: text.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+    def close(self):
+        meta = {"format": STATE_FORMAT, "tables": self._tables}
+        self._zip.writestr("meta.json", json.dumps(meta))
+        self._zip.close()
 
 
-def _table_hash(connection, table):
-    """Один хэш на всё содержимое таблицы без первичного ключа."""
-    with connection.cursor() as cursor:
-        cursor.execute(
-            "SELECT md5(coalesce(string_agg(h, ',' ORDER BY h), '')) "
-            f"FROM (SELECT md5(t::text) AS h FROM {_qualified(table)} t) AS s;"
-        )
-        return cursor.fetchone()[0]
+class StateReader:
+    """Читает снимок состояния; таблицы — отсортированными потоками."""
+
+    def __init__(self, path):
+        try:
+            self._zip = zipfile.ZipFile(path)
+            meta = json.loads(self._zip.read("meta.json"))
+        except (zipfile.BadZipFile, KeyError, ValueError) as exc:
+            # Снимки первого формата (gzip JSON целиком) дельтами не читаются.
+            raise BackupFailed(
+                BackupFailed.NEEDS_FULL, "unsupported state file", reason="old_base"
+            ) from exc
+        if meta.get("format") != STATE_FORMAT:
+            raise BackupFailed(
+                BackupFailed.NEEDS_FULL, "unsupported state format", reason="old_base"
+            )
+        self.tables = meta["tables"]
+
+    def records(self, name):
+        with self._zip.open(self.tables[name]["entry"]) as raw:
+            for line in io.TextIOWrapper(raw, encoding="utf-8"):
+                yield tuple(json.loads(line))
+
+    def close(self):
+        self._zip.close()
 
 
-def _table_state(connection, table):
-    state = {"columns": table.signature, "key": table.key}
+def _scan(connection, table):
+    """Отсортированный поток текущего состояния таблицы.
+
+    Для таблицы с ключом: (хэш ключа, ключ литералом, хэш строки). Сортировка
+    по md5 ключа не зависит от кодировки и правил сортировки сервера и
+    совпадает с порядком сравнения строк в Python.
+    Для таблицы без ключа: (хэш строки, число таких строк).
+    """
+    relation = _qualified(table)
     if table.key:
-        state["rows"] = _row_hashes(connection, table)
+        key = _literal_list(table.key)
+        query = (
+            f"SELECT md5({key}), {key}, md5(t::text) FROM {relation} t "
+            f'ORDER BY md5({key}) COLLATE "C", ({key}) COLLATE "C";'
+        )
     else:
-        state["hash"] = _table_hash(connection, table)
-    return state
+        query = (
+            f"SELECT h, count(*) FROM (SELECT md5(t::text) AS h FROM {relation} t) AS s "
+            'GROUP BY h ORDER BY h COLLATE "C";'
+        )
+    with connection.cursor(name=f"scan_{table.oid}") as cursor:
+        cursor.itersize = FETCH_SIZE
+        cursor.execute(query)
+        for row in cursor:
+            yield tuple(row)
 
 
-def _write_state(path, tables):
-    with gzip.open(path, "wt", encoding="utf-8") as handle:
-        json.dump({"format": STATE_FORMAT, "tables": tables}, handle, separators=(",", ":"))
+def _merge(base, current, width):
+    """Слияние двух отсортированных потоков по первым ``width`` полям.
+
+    Выдаёт (запись базы или None, текущая запись или None) для каждого ключа.
+    """
+    base, current = iter(base), iter(current)
+    b, c = next(base, None), next(current, None)
+    while b is not None or c is not None:
+        if c is None or (b is not None and b[:width] < c[:width]):
+            yield b, None
+            b = next(base, None)
+        elif b is None or c[:width] < b[:width]:
+            yield None, c
+            c = next(current, None)
+        else:
+            yield b, c
+            b, c = next(base, None), next(current, None)
 
 
-def read_state(path):
-    with gzip.open(path, "rt", encoding="utf-8") as handle:
-        state = json.load(handle)
-    if state.get("format") != STATE_FORMAT:
-        raise BackupFailed(BackupFailed.SCHEMA_CHANGED, "unsupported state format")
-    return state["tables"]
+def _record_state(connection, table, state):
+    with state.table(table) as record:
+        for row in _scan(connection, table):
+            record(row)
 
 
 # --------------------------------------------------------------------------- #
@@ -298,7 +367,8 @@ def full_backup(params, sql_path, state_path):
 
     ``pg_dump`` получает экспортированный снимок нашей транзакции
     (``--snapshot``), поэтому дамп и хэши строк описывают одно и то же
-    состояние базы, даже если в неё пишут во время копирования.
+    состояние базы, даже если в неё пишут во время копирования. Хэши
+    считаются параллельно с работой ``pg_dump``.
     """
     with _snapshot_connection(params) as connection:
         with connection.cursor() as cursor:
@@ -307,17 +377,17 @@ def full_backup(params, sql_path, state_path):
 
         process = _start_pg_dump(params, sql_path, snapshot)
         try:
-            tables = {
-                _state_key(table): _table_state(connection, table)
-                for table in _discover_tables(connection)
-            }
+            state = StateWriter(state_path)
+            tables = _discover_tables(connection)
+            for table in tables:
+                _record_state(connection, table, state)
+            state.close()
             _wait_pg_dump(process)
         finally:
             if process.poll() is None:
                 process.kill()
                 process.wait()
 
-    _write_state(state_path, tables)
     logger.info("Полная копия сохранена: %s", sql_path)
     return {"tables": len(tables)}
 
@@ -374,123 +444,202 @@ def _schema_differences(base_tables, tables):
     return differences
 
 
+class _DeltaWriter:
+    """SQL-файл дельты: upsert-ы по ходу сканирования, удаления — в конце."""
+
+    def __init__(self, connection, out, workdir):
+        self.connection = connection
+        self.out = out
+        self.workdir = workdir
+        self.touched = []
+        self.deletions = {}
+        self.stats = {"changed": 0, "deleted": 0, "tables": 0}
+
+    def touch(self, table):
+        # Копия воспроизводит значения как есть: пользовательские триггеры
+        # (например, «обнови updated_at») при восстановлении исказили бы
+        # данные. Триггеры внешних ключей не затрагиваются.
+        if table.oid not in {t.oid for t in self.touched}:
+            self.out.write(f"ALTER TABLE {_qualified(table)} DISABLE TRIGGER USER;\n")
+            self.touched.append(table)
+
+    # --- таблицы с первичным ключом -------------------------------------- #
+    def keyed(self, table, base_records, record):
+        pending = []
+        for base, current in _merge(base_records, _scan(self.connection, table), width=2):
+            if current is not None:
+                record(current)
+                if base is None or base[2] != current[2]:
+                    pending.append(current[1])
+                    if len(pending) >= KEY_BATCH:
+                        self._write_upserts(table, pending)
+                        pending = []
+            else:
+                self._defer_delete(table, base[1])
+        if pending:
+            self._write_upserts(table, pending)
+
+    def _write_upserts(self, table, keys):
+        self.touch(table)
+        prefix = _insert_prefix(table)
+        suffix = _upsert_suffix(table.columns, table.key)
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT {_literal_list(table.columns)} FROM {_qualified(table)} t "
+                f"WHERE {_key_match(table, keys)};"
+            )
+            for (values,) in cursor.fetchall():
+                self.out.write(f"{prefix}({values}){suffix};\n")
+                self.stats["changed"] += 1
+
+    # --- таблицы без первичного ключа ------------------------------------ #
+    def unkeyed(self, table, base_records, record):
+        """Строки без ключа сравниваются как мультимножество хэшей."""
+        pending = {}
+        for base, current in _merge(base_records, _scan(self.connection, table), width=1):
+            if current is not None:
+                record(current)
+            have = base[1] if base else 0
+            want = current[1] if current else 0
+            digest = (current or base)[0]
+            if want > have:
+                pending[digest] = want - have
+                if len(pending) >= KEY_BATCH:
+                    self._write_inserts(table, pending)
+                    pending = {}
+            elif have > want:
+                self._defer_delete(table, [digest, have - want])
+        if pending:
+            self._write_inserts(table, pending)
+
+    def _write_inserts(self, table, counts):
+        self.touch(table)
+        prefix = _insert_prefix(table)
+        digests = ", ".join(f"'{digest}'" for digest in counts)
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT md5(t::text), {_literal_list(table.columns)} FROM {_qualified(table)} t "
+                f"WHERE md5(t::text) IN ({digests});"
+            )
+            for digest, values in cursor.fetchall():
+                if counts.get(digest, 0) > 0:
+                    counts[digest] -= 1
+                    self.out.write(f"{prefix}({values});\n")
+                    self.stats["changed"] += 1
+
+    # --- удаления --------------------------------------------------------- #
+    def _defer_delete(self, table, item):
+        """Удаления пишутся в конце, в обратном порядке таблиц; до тех пор
+        они ждут во временном файле, а не в памяти."""
+        if table.oid not in self.deletions:
+            path = os.path.join(self.workdir, f"delete_{table.oid}.jsonl")
+            self.deletions[table.oid] = (open(path, "w+", encoding="utf-8"), 0)
+        handle, count = self.deletions[table.oid]
+        handle.write(json.dumps(item, ensure_ascii=False) + "\n")
+        self.deletions[table.oid] = (handle, count + 1)
+
+    def write_deletions(self, tables):
+        for table in reversed(tables):
+            if table.oid not in self.deletions:
+                continue
+            handle, _count = self.deletions.pop(table.oid)
+            handle.seek(0)
+            self.touch(table)
+            items = (json.loads(line) for line in handle)
+            if table.key:
+                batch = []
+                for key in items:
+                    batch.append(key)
+                    if len(batch) >= KEY_BATCH:
+                        self._delete_keys(table, batch)
+                        batch = []
+                if batch:
+                    self._delete_keys(table, batch)
+            else:
+                relation = _qualified(table)
+                for digest, count in items:
+                    self.out.write(
+                        f"DELETE FROM {relation} WHERE ctid IN (SELECT ctid FROM {relation} t "
+                        f"WHERE md5(t::text) = '{digest}' LIMIT {int(count)});\n"
+                    )
+                    self.stats["deleted"] += int(count)
+            handle.close()
+
+    def _delete_keys(self, table, keys):
+        self.out.write(f"DELETE FROM {_qualified(table)} WHERE {_key_match(table, keys)};\n")
+        self.stats["deleted"] += len(keys)
+
+    def finish(self):
+        for table in self.touched:
+            self.out.write(f"ALTER TABLE {_qualified(table)} ENABLE TRIGGER USER;\n")
+        _write_sequences(self.connection, self.out)
+        self.stats["tables"] = len(self.touched)
+
+
 def delta_backup(params, base_state_path, sql_path, state_path, *, label):
     """
     Дельта относительно снимка состояния базовой копии.
 
     Для таблиц с первичным ключом строки сравниваются по хэшу: новые и
-    изменённые выгружаются upsert-ами, исчезнувшие — DELETE. Таблица без
-    первичного ключа при любом изменении переписывается целиком. В конце
-    выставляются значения последовательностей, чтобы новые строки после
-    восстановления не получали уже занятые идентификаторы.
+    изменённые выгружаются upsert-ами, исчезнувшие — DELETE по ключу. Для
+    таблиц без ключа сравнивается мультимножество хэшей строк: недостающие
+    строки вставляются, лишние удаляются по хэшу. В конце выставляются
+    значения последовательностей, чтобы новые строки после восстановления не
+    получали уже занятые идентификаторы.
 
-    Схема должна совпадать со схемой базовой копии: новые таблицы и колонки
-    переносит только полная копия.
+    Схема должна совпадать со схемой базовой копии; если нет — бросается
+    ``BackupFailed(NEEDS_FULL)``, и вызывающий код снимает полную копию.
 
     :param label: вид копии для заголовка файла (``incremental`` и т. п.)
-    :raises BackupFailed: нет соединения, схема изменилась, ошибка SQL
+    :raises BackupFailed: нет соединения, нужна полная копия, ошибка SQL
     :return: статистика: сколько строк изменено и удалено
     """
-    base_tables = read_state(base_state_path)
-    stats = {"changed": 0, "deleted": 0, "tables": 0}
+    base = StateReader(base_state_path)
+    try:
+        with _snapshot_connection(params) as connection:
+            tables = _discover_tables(connection)
+            differences = _schema_differences(base.tables, tables)
+            if differences:
+                raise BackupFailed(
+                    BackupFailed.NEEDS_FULL, "; ".join(differences), reason="schema_changed"
+                )
 
-    with _snapshot_connection(params) as connection:
-        tables = _discover_tables(connection)
-        differences = _schema_differences(base_tables, tables)
-        if differences:
-            raise BackupFailed(BackupFailed.SCHEMA_CHANGED, "; ".join(differences))
+            state = StateWriter(state_path)
+            with open(sql_path, "w", encoding="utf-8") as out, \
+                    tempfile.TemporaryDirectory(prefix="delta-") as workdir:
+                out.write(
+                    f"-- DataStudio {label} backup of {params['dbname']}\n"
+                    "-- Apply with psql on top of the restored base backup.\n"
+                    "BEGIN;\n" + SESSION_SETUP_LOCAL
+                )
+                delta = _DeltaWriter(connection, out, workdir)
+                # Вставки — в порядке «родители раньше детей».
+                for table in tables:
+                    records = base.records(_state_key(table))
+                    with state.table(table) as record:
+                        if table.key:
+                            delta.keyed(table, records, record)
+                        else:
+                            delta.unkeyed(table, records, record)
+                # Удаления — в обратном порядке: сначала дети, потом родители.
+                delta.write_deletions(tables)
+                delta.finish()
+                out.write(
+                    f"-- rows changed: {delta.stats['changed']}, "
+                    f"rows deleted: {delta.stats['deleted']}\n"
+                    "COMMIT;\n"
+                )
+            state.close()
+    finally:
+        base.close()
 
-        new_state, deletions, touched = {}, {}, []
-        with open(sql_path, "w", encoding="utf-8") as out:
-            out.write(
-                f"-- DataStudio {label} backup of {params['dbname']}\n"
-                "-- Apply with psql on top of the restored base backup.\n"
-                "BEGIN;\n"
-            )
-
-            # Upsert-ы — в порядке «родители раньше детей».
-            for table in tables:
-                base = base_tables[_state_key(table)]
-                state = _table_state(connection, table)
-                new_state[_state_key(table)] = state
-
-                if table.key:
-                    changed = [k for k, h in state["rows"].items() if base["rows"].get(k) != h]
-                    removed = base["rows"].keys() - state["rows"].keys()
-                    if removed:
-                        deletions[table.oid] = (table, sorted(removed))
-                    if changed:
-                        touched.append(_disable_triggers(out, table))
-                        stats["changed"] += _write_upserts(connection, out, table, changed)
-                elif state["hash"] != base["hash"]:
-                    touched.append(_disable_triggers(out, table))
-                    out.write(f"DELETE FROM {_qualified(table)};\n")
-                    stats["changed"] += _write_all_rows(connection, out, table)
-
-            # Удаления — в обратном порядке: сначала дети, потом родители.
-            for table in reversed(tables):
-                if table.oid not in deletions:
-                    continue
-                _table, keys = deletions[table.oid]
-                if table not in touched:
-                    touched.append(_disable_triggers(out, table))
-                for batch in _batches(keys):
-                    out.write(f"DELETE FROM {_qualified(table)} WHERE {_key_match(table, batch)};\n")
-                stats["deleted"] += len(keys)
-
-            for table in touched:
-                out.write(f"ALTER TABLE {_qualified(table)} ENABLE TRIGGER USER;\n")
-            _write_sequences(connection, out)
-            out.write(
-                f"-- rows changed: {stats['changed']}, rows deleted: {stats['deleted']}\n"
-                "COMMIT;\n"
-            )
-        stats["tables"] = len(touched)
-
-    _write_state(state_path, new_state)
-    logger.info("Копия %s сохранена: %s (%s)", label, sql_path, stats)
-    return stats
-
-
-def _disable_triggers(out, table):
-    # Копия воспроизводит значения как есть: пользовательские триггеры
-    # (например, «обнови updated_at») при восстановлении исказили бы данные.
-    # Триггеры внешних ключей не затрагиваются.
-    out.write(f"ALTER TABLE {_qualified(table)} DISABLE TRIGGER USER;\n")
-    return table
+    logger.info("Копия %s сохранена: %s (%s)", label, sql_path, delta.stats)
+    return delta.stats
 
 
 def _insert_prefix(table):
     column_list = ", ".join(_quote_identifier(c) for c in table.columns)
     return f"INSERT INTO {_qualified(table)} ({column_list}) VALUES "
-
-
-def _write_upserts(connection, out, table, keys):
-    prefix = _insert_prefix(table)
-    suffix = _upsert_suffix(table.columns, table.key)
-    written = 0
-    with connection.cursor() as cursor:
-        for batch in _batches(keys):
-            cursor.execute(
-                f"SELECT {_literal_list(table.columns)} FROM {_qualified(table)} t "
-                f"WHERE {_key_match(table, batch)};"
-            )
-            for (values,) in cursor.fetchall():
-                out.write(f"{prefix}({values}){suffix};\n")
-                written += 1
-    return written
-
-
-def _write_all_rows(connection, out, table):
-    prefix = _insert_prefix(table)
-    written = 0
-    with connection.cursor(name=f"rows_{table.oid}") as cursor:
-        cursor.itersize = FETCH_SIZE
-        cursor.execute(f"SELECT {_literal_list(table.columns)} FROM {_qualified(table)} t;")
-        for (values,) in cursor:
-            out.write(f"{prefix}({values});\n")
-            written += 1
-    return written
 
 
 def _write_sequences(connection, out):

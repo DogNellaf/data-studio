@@ -4,8 +4,9 @@
     docker compose exec -T app python manage.py shell < docker/smoke_test.py
 
 Ставит полную копию демо-базы в каждое хранилище (локальный диск и MinIO),
-меняет данные, ставит инкрементальную с удалением строки и ждёт, пока воркер
-всё снимет. Любой сбой — ненулевой код выхода.
+меняет данные, ставит инкрементальную с удалением строки, затем меняет схему
+и проверяет, что вместо дельты снята полная копия. Любой сбой — ненулевой код
+выхода.
 """
 import sys
 import time
@@ -46,8 +47,20 @@ connection.close()
 
 deltas = wait([enqueue_backup(user, type=incremental, storage=s, **SOURCE) for s in storages])
 
+# Изменение схемы: инкрементальную копию снять нельзя, воркер снимает полную.
+connection = psycopg2.connect(host="demo-db", dbname="shop", user="shop", password="shop")
+with connection, connection.cursor() as cursor:
+    cursor.execute("ALTER TABLE customers ADD COLUMN IF NOT EXISTS phone text")
+connection.close()
+promoted = wait([enqueue_backup(user, type=incremental, storage=s, **SOURCE) for s in storages])
+
 failed = False
-for backup in fulls + deltas:
+for backup in promoted:
+    if backup.type.code != "full" or backup.promoted_reason != "schema_changed":
+        print(f"#{backup.pk}: expected a full backup after the schema change")
+        failed = True
+
+for backup in fulls + deltas + promoted:
     print(f"#{backup.pk} {backup.type.code:<12} {backup.storage.backend:<5} "
           f"{backup.status:<9} {backup.size or 0:>8} B {backup.error_code}")
     failed |= backup.status != Backup.SUCCEEDED

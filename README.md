@@ -80,8 +80,13 @@ COMMIT;
   database compared with the source. Mutating the engine (no deletes, no
   sequences, `public` only) makes them fail.
 - **Every change is captured.** Row hashes instead of timestamps: deleted rows,
-  tables without `updated_at` and all schemas are included. A table without a
-  primary key is rewritten whole when its content hash changes.
+  tables without `updated_at` and all schemas are included. Tables without a
+  primary key are compared as multisets of row hashes, so a delta inserts and
+  deletes exactly the rows that changed, duplicates included.
+- **Constant memory.** State files are sorted streams, and a delta merges them
+  with a sorted scan of the live table, like a merge join. Only one batch of
+  keys is ever held in memory, whatever the table size; pending deletes wait in
+  a temporary file.
 - **One consistent snapshot.** The full backup exports the transaction
   snapshot to `pg_dump --snapshot`, so the dump and the state file describe
   the same moment even while the database is being written to. Deltas are read
@@ -92,9 +97,10 @@ COMMIT;
 - **Values are restored verbatim.** PostgreSQL does the escaping
   (`quote_nullable()`), and user triggers such as "touch `updated_at`" are
   disabled while rows are written.
-- **Schema drift is detected.** If a table or column appeared or vanished since
-  the base backup, the delta fails with a clear "take a full backup first"
-  instead of producing a file that cannot be restored.
+- **Schema changes never block a backup.** If a table or column appeared or
+  vanished since the base backup, or the base backup is gone, the worker takes
+  a full backup instead and the list says why, rather than producing a delta
+  that could not be restored.
 - **Background jobs without extra infrastructure.** Backups are a queue in the
   application database; `backup_worker` claims jobs with
   `SELECT … FOR UPDATE SKIP LOCKED`, so several workers can run side by side.
@@ -252,22 +258,12 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-There are 124 tests with 97% coverage; S3 is tested against moto. CI also
+There are 131 tests with 97% coverage; S3 is tested against moto. CI also
 starts PostgreSQL 16 for the integration tests and, after building the image,
 brings up the whole compose stack and takes full and incremental backups
-through the worker into both local disk and MinIO
+through the worker into both local disk and MinIO, including a schema change
+that turns a delta into a full backup
 ([`docker/smoke_test.py`](docker/smoke_test.py)).
-
-## Limitations
-
-- Deltas compare every row, so each backup reads whole tables and the worker
-  keeps the row hashes of the largest table in memory. That is fine up to
-  millions of rows; beyond that, logical replication (WAL) is the right tool.
-- Schema changes (new tables or columns) are not carried by deltas: the app
-  detects them and asks for a new full backup.
-- A table without a primary key is rewritten whole whenever it changes.
-- Backups taken before state files existed cannot serve as a base for deltas;
-  the next full backup starts a new chain.
 
 ## Project structure
 

@@ -217,6 +217,13 @@ class Backup(models.Model):
         help_text=_("Technical details for administrators; not shown to users"),
     )
 
+    promoted_reason = models.CharField(
+        verbose_name=_("taken as full because"),
+        max_length=30,
+        blank=True,
+        help_text=_("Set when a requested delta could not be taken and a full backup was taken instead"),
+    )
+
     secret = models.TextField(
         verbose_name=_("encrypted password"),
         blank=True,

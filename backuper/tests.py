@@ -8,19 +8,19 @@ from unittest.mock import MagicMock, patch
 import psycopg2
 from django.test import SimpleTestCase
 
-from backuper import utils
 from backuper.utils import (
-    STATE_FORMAT,
     BackupFailed,
+    StateReader,
+    StateWriter,
     Table,
     _key_match,
     _literal_list,
+    _merge,
     _quote_identifier,
     _schema_differences,
     _topological_order,
     _upsert_suffix,
     full_backup,
-    read_state,
 )
 
 
@@ -100,19 +100,50 @@ class StateFileTests(SimpleTestCase):
     def setUp(self):
         self.workdir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.workdir, ignore_errors=True)
-        self.path = os.path.join(self.workdir, "state.json.gz")
+        self.path = os.path.join(self.workdir, "state.zip")
 
-    def test_round_trip(self):
-        tables = {"public.users": {"columns": ["id int"], "key": ["id"], "rows": {"'1'": "abc"}}}
-        utils._write_state(self.path, tables)
-        self.assertEqual(read_state(self.path), tables)
+    def test_round_trip_streams_each_table(self):
+        users, logs = make_table(), make_table(name="logs", key=())
+        writer = StateWriter(self.path)
+        with writer.table(users) as record:
+            record(["h1", "'1'", "row1"])
+            record(["h2", "'2'", "row2"])
+        with writer.table(logs) as record:
+            record(["abc", 3])
+        writer.close()
 
-    def test_unknown_format_is_rejected(self):
+        reader = StateReader(self.path)
+        self.addCleanup(reader.close)
+        self.assertEqual(reader.tables["public.users"]["key"], ["id"])
+        self.assertEqual(list(reader.records("public.users")), [("h1", "'1'", "row1"), ("h2", "'2'", "row2")])
+        self.assertEqual(list(reader.records("public.logs")), [("abc", 3)])
+
+    def test_old_gzip_format_asks_for_full_backup(self):
         with gzip.open(self.path, "wt") as handle:
-            json.dump({"format": STATE_FORMAT + 1, "tables": {}}, handle)
+            json.dump({"format": 1, "tables": {}}, handle)
         with self.assertRaises(BackupFailed) as ctx:
-            read_state(self.path)
-        self.assertEqual(ctx.exception.code, BackupFailed.SCHEMA_CHANGED)
+            StateReader(self.path)
+        self.assertEqual((ctx.exception.code, ctx.exception.reason), (BackupFailed.NEEDS_FULL, "old_base"))
+
+
+class MergeTests(SimpleTestCase):
+    def test_pairs_matching_keys_and_reports_one_sided(self):
+        base = [("a", "k1", "x"), ("c", "k3", "x"), ("d", "k4", "x")]
+        current = [("a", "k1", "y"), ("b", "k2", "x"), ("d", "k4", "x")]
+        self.assertEqual(
+            list(_merge(base, current, width=2)),
+            [
+                (("a", "k1", "x"), ("a", "k1", "y")),
+                (None, ("b", "k2", "x")),
+                (("c", "k3", "x"), None),
+                (("d", "k4", "x"), ("d", "k4", "x")),
+            ],
+        )
+
+    def test_empty_sides(self):
+        self.assertEqual(list(_merge([], [("a", 1)], width=1)), [(None, ("a", 1))])
+        self.assertEqual(list(_merge([("a", 1)], [], width=1)), [(("a", 1), None)])
+        self.assertEqual(list(_merge([], [], width=1)), [])
 
 
 class FullBackupFailureTests(SimpleTestCase):
@@ -143,9 +174,11 @@ class FullBackupFailureTests(SimpleTestCase):
         popen.return_value = MagicMock(returncode=1)
         popen.return_value.communicate.return_value = ("", "boom")
         popen.return_value.poll.return_value = 1
+        workdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, workdir, ignore_errors=True)
         with patch("backuper.utils._discover_tables", return_value=[]):
             with self.assertRaises(BackupFailed) as ctx:
-                full_backup(self.params, "/tmp/x.sql", "/tmp/x.state")
+                full_backup(self.params, os.path.join(workdir, "x.sql"), os.path.join(workdir, "x.state"))
         self.assertEqual(ctx.exception.detail, "boom")
         command = popen.call_args.args[0]
         self.assertIn("--snapshot=snapshot-1", command)

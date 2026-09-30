@@ -87,9 +87,14 @@ COMMIT;
   Vergleich mit der Quelle. Entfernt man aus der Engine die Löschungen, die
   Sequenzen oder alle Schemas außer `public`, schlagen die Tests fehl.
 - **Jede Änderung wird erfasst.** Zeilen-Hashes statt Zeitstempeln: gelöschte
-  Zeilen, Tabellen ohne `updated_at` und alle Schemas sind dabei. Eine Tabelle
-  ohne Primärschlüssel wird vollständig neu geschrieben, wenn sich ihr Inhalt
-  ändert.
+  Zeilen, Tabellen ohne `updated_at` und alle Schemas sind dabei. Tabellen ohne
+  Primärschlüssel werden als Multimengen von Zeilen-Hashes verglichen, sodass
+  ein Delta genau die geänderten Zeilen einfügt und löscht, Duplikate
+  eingeschlossen.
+- **Konstanter Speicherbedarf.** Zustandsdateien sind sortierte Datenströme, die
+  ein Delta mit einem sortierten Lesen der Tabelle zusammenführt, wie ein Merge
+  Join. Im Speicher liegt immer nur ein Stapel von Schlüsseln, unabhängig von der
+  Tabellengröße; anstehende Löschungen warten in einer temporären Datei.
 - **Ein konsistenter Snapshot.** Die Vollsicherung übergibt den Snapshot ihrer
   Transaktion an `pg_dump --snapshot`, sodass Dump und Zustandsdatei denselben
   Moment beschreiben, auch wenn währenddessen geschrieben wird. Deltas werden in
@@ -101,10 +106,11 @@ COMMIT;
 - **Werte werden unverändert wiederhergestellt.** PostgreSQL übernimmt das
   Escaping (`quote_nullable()`), und Benutzer-Trigger wie „`updated_at`
   aktualisieren“ sind beim Schreiben deaktiviert.
-- **Schemaänderungen werden erkannt.** Ist seit der Basissicherung eine Tabelle
-  oder Spalte hinzugekommen oder verschwunden, bricht das Delta mit einer klaren
-  Meldung („zuerst eine Vollsicherung erstellen“) ab, statt eine Datei zu
-  erzeugen, die sich nicht wiederherstellen lässt.
+- **Schemaänderungen blockieren keine Sicherung.** Ist seit der Basissicherung
+  eine Tabelle oder Spalte hinzugekommen oder verschwunden oder gibt es die
+  Basissicherung nicht mehr, erstellt der Worker stattdessen eine Vollsicherung,
+  und die Liste zeigt den Grund an, statt ein Delta zu erzeugen, das sich nicht
+  wiederherstellen ließe.
 - **Hintergrundaufgaben ohne zusätzliche Infrastruktur.** Die Warteschlange ist
   eine Tabelle in der Anwendungsdatenbank; `backup_worker` holt Aufgaben mit
   `SELECT … FOR UPDATE SKIP LOCKED`, sodass mehrere Worker parallel laufen
@@ -267,24 +273,12 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-124 Tests, 97 % Abdeckung; S3 wird gegen moto getestet. Die CI startet
+131 Tests, 97 % Abdeckung; S3 wird gegen moto getestet. Die CI startet
 PostgreSQL 16 für die Integrationstests und fährt nach dem Image-Build den
 gesamten Compose-Stack hoch, um über den Worker Voll- und inkrementelle
-Sicherungen sowohl auf die lokale Festplatte als auch nach MinIO zu erstellen
-([`docker/smoke_test.py`](docker/smoke_test.py)).
-
-## Einschränkungen
-
-- Ein Delta vergleicht jede Zeile: Jede Sicherung liest ganze Tabellen, und der
-  Worker hält die Zeilen-Hashes der größten Tabelle im Speicher. Bis zu
-  Millionen Zeilen ist das in Ordnung; darüber hinaus ist logische Replikation
-  (WAL) das richtige Werkzeug.
-- Schemaänderungen (neue Tabellen oder Spalten) übertragen Deltas nicht: Die
-  Anwendung erkennt sie und verlangt eine neue Vollsicherung.
-- Eine Tabelle ohne Primärschlüssel wird bei jeder Änderung vollständig neu
-  geschrieben.
-- Sicherungen, die vor den Zustandsdateien entstanden sind, können keine Basis
-  für Deltas sein; die nächste Vollsicherung beginnt eine neue Kette.
+Sicherungen sowohl auf die lokale Festplatte als auch nach MinIO zu erstellen,
+einschließlich einer Schemaänderung, nach der statt eines Deltas eine
+Vollsicherung entsteht ([`docker/smoke_test.py`](docker/smoke_test.py)).
 
 ## Projektstruktur
 

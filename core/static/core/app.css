@@ -376,3 +376,4 @@ tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 55%, transpa
 .status-error { max-width: 260px; margin-top: 2px; color: var(--danger); }
 @keyframes pulse { from { opacity: .35; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .status--running::before { animation: none; } }
+.status-note { max-width: 260px; margin-top: 2px; color: var(--warn); }

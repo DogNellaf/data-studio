@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 20:28+0000\n"
+"POT-Creation-Date: 2026-09-30 20:52+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -228,77 +228,91 @@ msgstr ""
 "Технические подробности для администраторов; пользователям не показываются"
 
 #: core/models.py:221
+msgid "taken as full because"
+msgstr "снята полной, потому что"
+
+#: core/models.py:224
+msgid ""
+"Set when a requested delta could not be taken and a full backup was taken "
+"instead"
+msgstr ""
+"Заполняется, если запрошенную дельту снять было нельзя и вместо неё снята "
+"полная копия"
+
+#: core/models.py:228
 msgid "encrypted password"
 msgstr "зашифрованный пароль"
 
-#: core/models.py:227
+#: core/models.py:234
 msgid "backup file"
 msgstr "файл копии"
 
-#: core/models.py:233
+#: core/models.py:240
 msgid "state file"
 msgstr "файл состояния"
 
-#: core/models.py:236
+#: core/models.py:243
 msgid "Row hashes that later deltas are compared with"
 msgstr "Хэши строк, с которыми сравниваются следующие дельты"
 
-#: core/models.py:240
+#: core/models.py:247
 msgid "file size, bytes"
 msgstr "размер файла, байт"
 
-#: core/models.py:246
+#: core/models.py:253
 msgid "created at"
 msgstr "создана"
 
-#: core/models.py:251
+#: core/models.py:258
 msgid "started at"
 msgstr "начата"
 
-#: core/models.py:257
+#: core/models.py:264
 msgid "finished at"
 msgstr "завершена"
 
-#: core/models.py:263
+#: core/models.py:270
 msgid "backup"
 msgstr "резервная копия"
 
-#: core/models.py:264
+#: core/models.py:271
 msgid "backups"
 msgstr "резервные копии"
 
-#: core/services.py:37
+#: core/services.py:36
 msgid "Could not connect to the database: check the address and credentials"
 msgstr ""
 "Не удалось подключиться к базе данных: проверьте адрес и учётные данные"
 
-#: core/services.py:39 core/services.py:46
+#: core/services.py:38 core/services.py:41
 msgid "The backup failed, see the server log for details"
 msgstr "Не удалось снять резервную копию, подробности в журнале сервера"
 
-#: core/services.py:41
-msgid ""
-"The database schema changed since the base backup: take a full backup first"
-msgstr ""
-"Схема базы изменилась с момента базовой копии: сначала снимите полную копию"
-
-#: core/services.py:43
-msgid "There is no base backup to compare with: take a full backup first"
-msgstr "Нет базовой копии для сравнения: сначала снимите полную копию"
-
-#: core/services.py:44
+#: core/services.py:39
 msgid "The storage is not available"
 msgstr "Хранилище недоступно"
 
-#: core/services.py:45
+#: core/services.py:40
 msgid "The backup was interrupted, please try again"
 msgstr "Снятие копии прервалось, попробуйте ещё раз"
 
-#: core/services.py:53
+#: core/services.py:47
+msgid "Taken as a full backup: the base backup is gone"
+msgstr "Снята полной: базовой копии больше нет"
+
+#: core/services.py:48
+msgid "Taken as a full backup: the base backup predates change tracking"
+msgstr "Снята полной: базовая копия снята до появления снимков состояния"
+
+#: core/services.py:49
+msgid "Taken as a full backup: the database schema changed"
+msgstr "Снята полной: изменилась схема базы"
+
+#: core/services.py:56
 msgid "An incremental backup needs a full backup of the same database first"
 msgstr "Для инкрементальной копии сначала нужна полная копия этой же базы"
 
-#: core/services.py:56
+#: core/services.py:59
 msgid "A differential backup needs a full backup of the same database first"
 msgstr "Для дифференциальной копии сначала нужна полная копия этой же базы"
 
@@ -438,29 +452,29 @@ msgstr "Создана"
 msgid "Actions"
 msgstr "Действия"
 
-#: core/templates/index.html:68
+#: core/templates/index.html:69
 msgid "Download"
 msgstr "Скачать"
 
-#: core/templates/index.html:68
+#: core/templates/index.html:69
 #, python-format
 msgid "Download backup of %(db)s"
 msgstr "Скачать копию %(db)s"
 
-#: core/templates/index.html:71 core/templates/remove.html:28
+#: core/templates/index.html:72 core/templates/remove.html:28
 msgid "Delete"
 msgstr "Удалить"
 
-#: core/templates/index.html:71
+#: core/templates/index.html:72
 #, python-format
 msgid "Delete backup of %(db)s"
 msgstr "Удалить копию %(db)s"
 
-#: core/templates/index.html:83
+#: core/templates/index.html:84
 msgid "No backups yet"
 msgstr "Копий пока нет"
 
-#: core/templates/index.html:84
+#: core/templates/index.html:85
 msgid ""
 "Start with a full backup: incremental and differential backups are built on "
 "top of it."
@@ -468,7 +482,7 @@ msgstr ""
 "Начните с полной копии: она нужна как основа для инкрементальных и "
 "дифференциальных."
 
-#: core/templates/index.html:85
+#: core/templates/index.html:86
 msgid "Create your first backup"
 msgstr "Создать первую копию"
 
@@ -534,30 +548,30 @@ msgstr "Хранилищ нет"
 msgid "Add a storage in the admin panel."
 msgstr "Добавьте хранилище в панели администратора."
 
-#: core/views.py:44
+#: core/views.py:51
 msgid "This backup is not ready yet"
 msgstr "Эта копия ещё не готова"
 
-#: core/views.py:51
+#: core/views.py:58
 msgid "The backup file is missing from the storage"
 msgstr "Файл копии не найден в хранилище"
 
-#: core/views.py:74
+#: core/views.py:81
 #, python-format
 msgid "Backup of “%(db)s” created"
 msgstr "Копия базы «%(db)s» создана"
 
-#: core/views.py:80
+#: core/views.py:87
 #, python-format
 msgid "Backup of “%(db)s” queued: it will appear below when ready"
 msgstr ""
 "Копия базы «%(db)s» поставлена в очередь и появится ниже, когда будет готова"
 
-#: core/views.py:95
+#: core/views.py:102
 msgid "This backup is being taken right now; delete it when it finishes"
 msgstr "Эта копия снимается прямо сейчас; удалите её, когда задача завершится"
 
-#: core/views.py:103
+#: core/views.py:110
 msgid "Backup deleted"
 msgstr "Резервная копия удалена"
 

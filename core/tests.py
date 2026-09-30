@@ -61,7 +61,7 @@ def make_backup(user, storage, backup_type, db="mydb", host="127.0.0.1", port=54
     kwargs.setdefault("status", Backup.SUCCEEDED)
     if kwargs["status"] == Backup.SUCCEEDED:
         kwargs.setdefault("file_name", f"{db}-{Backup.objects.count()}.sql")
-        kwargs.setdefault("state_name", f"{db}-{Backup.objects.count()}.state.json.gz")
+        kwargs.setdefault("state_name", f"{db}-{Backup.objects.count()}.state.zip")
     return Backup.objects.create(
         user=user,
         storage=storage,
@@ -286,10 +286,10 @@ class FindBaseBackupTests(ServiceTestBase):
         make_backup(self.user, make_storage(location="elsewhere"), self.full, db="shop")
         self.assertIsNone(find_base_backup(self.job(self.incr)))
 
-    def test_ignores_backups_without_state(self):
-        """Копии, снятые до снимков состояния, базой служить не могут."""
-        make_backup(self.user, self.storage, self.full, db="shop", state_name="")
-        self.assertIsNone(find_base_backup(self.job(self.incr)))
+    def test_legacy_backup_without_state_is_still_the_base(self):
+        """Такая копия остаётся базой: воркер увидит, что снимка нет, и снимет полную."""
+        legacy = make_backup(self.user, self.storage, self.full, db="shop", state_name="")
+        self.assertEqual(find_base_backup(self.job(self.incr)), legacy)
 
     def test_ignores_backups_queued_later(self):
         job = self.job(self.incr)
@@ -324,10 +324,10 @@ class EnqueueTests(ServiceTestBase):
         backup = enqueue_backup(self.user, **self.params(type=self.incr))
         self.assertEqual(backup.status, Backup.QUEUED)
 
-    def test_legacy_backup_without_state_is_not_a_base(self, _conn):
+    def test_legacy_backup_counts_as_base(self, _conn):
         make_backup(self.user, self.storage, self.full, db="shop", state_name="")
-        with self.assertRaises(BackupError):
-            enqueue_backup(self.user, **self.params(type=self.incr))
+        backup = enqueue_backup(self.user, **self.params(type=self.incr))
+        self.assertEqual(backup.status, Backup.QUEUED)
 
     def test_unconfigured_storage(self, _conn):
         s3 = make_storage(location="s3://bucket", backend="s3")
@@ -367,11 +367,45 @@ class RunBackupTests(ServiceTestBase):
         self.assertEqual(delta.base, base)
         self.assertEqual(seen, [{"format": 1, "tables": {"t": 1}}])
 
-    def test_missing_base_at_run_time(self):
-        backup = self.run_job(self.queued(self.incr))
-        self.assertEqual(backup.status, Backup.FAILED)
-        self.assertEqual(backup.error_code, "missing_base")
+    def assert_promoted(self, backup, reason):
+        self.assertEqual(backup.status, Backup.SUCCEEDED)
+        self.assertEqual(backup.type, self.full)
+        self.assertEqual(backup.promoted_reason, reason)
+        self.assertIsNone(backup.base)
         self.assertEqual(backup.secret, "")
+
+    @patch("core.services.full_backup", side_effect=fake_full_backup())
+    def test_no_base_at_run_time_takes_full_backup(self, full):
+        backup = self.run_job(self.queued(self.incr))
+        self.assert_promoted(backup, "no_base")
+        full.assert_called_once()
+
+    @patch("core.services.full_backup", side_effect=fake_full_backup())
+    def test_legacy_base_takes_full_backup(self, _full):
+        make_backup(self.user, self.storage, self.full, db="shop", state_name="")
+        backup = self.run_job(self.queued(self.diff))
+        self.assert_promoted(backup, "old_base")
+
+    def test_schema_change_takes_full_backup(self):
+        with patch("core.services.full_backup", side_effect=fake_full_backup()):
+            self.run_job(self.queued())
+        needs_full = BackupFailed(BackupFailed.NEEDS_FULL, "new table public.x", reason="schema_changed")
+        with patch("core.services.delta_backup", side_effect=needs_full), \
+                patch("core.services.full_backup", side_effect=fake_full_backup("-- full again")) as full:
+            backup = self.run_job(self.queued(self.incr))
+        self.assert_promoted(backup, "schema_changed")
+        self.assertEqual(backup.error_detail, "new table public.x")
+        full.assert_called_once()
+        with self.storage.open_backend().open(backup.file_name) as handle:
+            self.assertEqual(handle.read(), b"-- full again")
+
+    @patch("core.services.delta_backup",
+           side_effect=BackupFailed(BackupFailed.CONNECTION, "gone"))
+    def test_other_delta_errors_still_fail(self, _delta):
+        with patch("core.services.full_backup", side_effect=fake_full_backup()):
+            self.run_job(self.queued())
+        backup = self.run_job(self.queued(self.incr))
+        self.assertEqual((backup.status, backup.error_code), (Backup.FAILED, BackupFailed.CONNECTION))
 
     @patch("core.services.full_backup",
            side_effect=BackupFailed(BackupFailed.CONNECTION, "password authentication failed"))
@@ -461,7 +495,7 @@ class S3StorageTests(ServiceTestBase):
         self.assertEqual(backup.status, Backup.SUCCEEDED)
         self.assertEqual(
             self.objects(),
-            [f"datastudio/backup{backup.pk}.sql", f"datastudio/backup{backup.pk}.state.json.gz"],
+            [f"datastudio/backup{backup.pk}.sql", f"datastudio/backup{backup.pk}.state.zip"],
         )
         self.assertEqual(os.listdir(self.media_root), [])
 
@@ -512,11 +546,13 @@ class IndexViewTests(ViewTestBase):
     def test_job_statuses_and_auto_refresh(self):
         self.queued()
         make_backup(self.user, self.storage, self.full, db="shop",
-                    status=Backup.FAILED, error_code=BackupFailed.SCHEMA_CHANGED)
+                    status=Backup.FAILED, error_code=BackupFailed.CONNECTION)
+        make_backup(self.user, self.storage, self.full, db="shop", promoted_reason="schema_changed")
         self.login()
         response = self.client.get("/")
         self.assertContains(response, "Queued")
-        self.assertContains(response, "The database schema changed")
+        self.assertContains(response, "Could not connect to the database")
+        self.assertContains(response, "Taken as a full backup: the database schema changed")
         self.assertContains(response, 'http-equiv="refresh"')
 
     def test_no_refresh_when_idle(self):

@@ -25,7 +25,6 @@ from core.utils import check_db_connection
 
 logger = logging.getLogger(__name__)
 
-MISSING_BASE = "missing_base"
 STORAGE = "storage"
 INTERRUPTED = "interrupted"
 INTERNAL = "internal"
@@ -37,13 +36,17 @@ ERROR_MESSAGES = {
         "Could not connect to the database: check the address and credentials"
     ),
     BackupFailed.DUMP: gettext_lazy("The backup failed, see the server log for details"),
-    BackupFailed.SCHEMA_CHANGED: gettext_lazy(
-        "The database schema changed since the base backup: take a full backup first"
-    ),
-    MISSING_BASE: gettext_lazy("There is no base backup to compare with: take a full backup first"),
     STORAGE: gettext_lazy("The storage is not available"),
     INTERRUPTED: gettext_lazy("The backup was interrupted, please try again"),
     INTERNAL: gettext_lazy("The backup failed, see the server log for details"),
+}
+
+# Дельту снять нельзя — воркер снимает полную копию и объясняет почему.
+NO_BASE = "no_base"
+PROMOTION_NOTES = {
+    NO_BASE: gettext_lazy("Taken as a full backup: the base backup is gone"),
+    "old_base": gettext_lazy("Taken as a full backup: the base backup predates change tracking"),
+    "schema_changed": gettext_lazy("Taken as a full backup: the database schema changed"),
 }
 
 # Отдельные фразы, а не одна с подстановкой типа: в переводах название
@@ -64,6 +67,10 @@ class BackupError(Exception):
 
 def error_message(backup):
     return ERROR_MESSAGES.get(backup.error_code, ERROR_MESSAGES[INTERNAL])
+
+
+def promotion_note(backup):
+    return PROMOTION_NOTES.get(backup.promoted_reason, "")
 
 
 def is_delta(backup_type):
@@ -93,14 +100,11 @@ def find_base_backup(backup):
     дифференциальная — с последней готовой полной. Учитываются только копии
     того же пользователя в том же хранилище, снятые раньше этой задачи:
     чужие копии той же базы ему недоступны, а цепочка из разных хранилищ не
-    восстанавливалась бы из одного места. Копии, снятые до появления снимков
-    состояния, базой служить не могут.
+    восстанавливалась бы из одного места.
     """
     backups = _same_chain(
         backup.user, backup.db, backup.host, backup.port, backup.storage
-    ).filter(
-        status=Backup.SUCCEEDED, created_at__lt=backup.created_at
-    ).exclude(state_name="")
+    ).filter(status=Backup.SUCCEEDED, created_at__lt=backup.created_at)
     return _base_candidates(backups, backup.type).order_by("created_at", "id").last()
 
 
@@ -124,7 +128,7 @@ def enqueue_backup(user, *, type, host, port, db, username, password, storage):
         possible_bases = _base_candidates(
             _same_chain(user, db, host, port, storage).filter(
                 status__in=(Backup.SUCCEEDED, *Backup.ACTIVE_STATUSES)
-            ).exclude(status=Backup.SUCCEEDED, state_name=""),
+            ),
             type,
         )
         if not possible_bases.exists():
@@ -237,40 +241,68 @@ def _take_backup(backup):
 
     with tempfile.TemporaryDirectory(prefix="datastudio-") as workdir:
         sql_path = os.path.join(workdir, "backup.sql")
-        state_path = os.path.join(workdir, "backup.state.json.gz")
+        state_path = os.path.join(workdir, "backup.state.zip")
 
-        base = None
-        if backup.type.code == BackupType.FULL:
-            full_backup(params, sql_path, state_path)
-        else:
+        base, promoted_reason, detail = None, "", ""
+        if backup.type.code != BackupType.FULL:
             base = find_base_backup(backup)
             if base is None:
-                raise BackupFailed(MISSING_BASE)
-            base_state_path = os.path.join(workdir, "base.state.json.gz")
-            try:
-                with base.storage.open_backend().open(base.state_name, "rb") as src, \
-                        open(base_state_path, "wb") as dst:
-                    for chunk in iter(lambda: src.read(1024 * 1024), b""):
-                        dst.write(chunk)
-            except Exception as exc:  # noqa: BLE001 - файл состояния недоступен
-                raise _StorageUnavailable(f"base state of #{base.pk}: {exc}") from exc
-            delta_backup(params, base_state_path, sql_path, state_path, label=backup.type.code)
+                promoted_reason = NO_BASE
+            elif not base.state_name:
+                # Копия снята до появления снимков состояния.
+                promoted_reason = "old_base"
+            else:
+                try:
+                    base_state_path = _download_state(base, workdir)
+                    delta_backup(
+                        params, base_state_path, sql_path, state_path, label=backup.type.code
+                    )
+                except BackupFailed as exc:
+                    if exc.code != BackupFailed.NEEDS_FULL:
+                        raise
+                    promoted_reason, detail = exc.reason or "schema_changed", exc.detail
+
+        if backup.type.code == BackupType.FULL or promoted_reason:
+            # Дельту снять нельзя, но пользователь просил копию — снимаем
+            # полную и объясняем в интерфейсе, почему она полная.
+            full_backup(params, sql_path, state_path)
+            base = None
 
         stem = f"backup{backup.pk}"
         try:
             with open(sql_path, "rb") as handle:
                 file_name = backend.save(f"{stem}.sql", File(handle))
             with open(state_path, "rb") as handle:
-                state_name = backend.save(f"{stem}.state.json.gz", File(handle))
+                state_name = backend.save(f"{stem}.state.zip", File(handle))
         except Exception as exc:  # noqa: BLE001 - сеть, права, квоты
             raise _StorageUnavailable(str(exc)) from exc
 
-        return {
+        result = {
             "file_name": file_name,
             "state_name": state_name,
             "size": os.path.getsize(sql_path),
             "base": base,
         }
+        if promoted_reason:
+            logger.info("Копия %s снята полной: %s %s", backup.pk, promoted_reason, detail)
+            result.update(
+                type=BackupType.objects.get(code=BackupType.FULL),
+                promoted_reason=promoted_reason,
+                error_detail=detail,
+            )
+        return result
+
+
+def _download_state(base, workdir):
+    path = os.path.join(workdir, "base.state")
+    try:
+        with base.storage.open_backend().open(base.state_name, "rb") as src, \
+                open(path, "wb") as dst:
+            for chunk in iter(lambda: src.read(1024 * 1024), b""):
+                dst.write(chunk)
+    except Exception as exc:  # noqa: BLE001 - файл состояния недоступен
+        raise _StorageUnavailable(f"base state of #{base.pk}: {exc}") from exc
+    return path
 
 
 def _finish(backup, **fields):

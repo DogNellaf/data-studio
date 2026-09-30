@@ -87,8 +87,13 @@ COMMIT;
   schémas autres que `public`, les tests échouent.
 - **Tous les changements sont captés.** Des empreintes de lignes plutôt que
   des horodatages : lignes supprimées, tables sans `updated_at` et tous les
-  schémas sont pris en compte. Une table sans clé primaire est réécrite
-  entièrement quand son contenu change.
+  schémas sont pris en compte. Les tables sans clé primaire sont comparées
+  comme des multiensembles d’empreintes : un delta insère et supprime
+  exactement les lignes modifiées, doublons compris.
+- **Mémoire constante.** Les fichiers d’état sont des flux triés, qu’un delta
+  fusionne avec une lecture triée de la table, comme une jointure par fusion.
+  Une seule série de clés est gardée en mémoire, quelle que soit la taille de
+  la table ; les suppressions attendent dans un fichier temporaire.
 - **Un seul instantané cohérent.** La sauvegarde complète transmet
   l’instantané de sa transaction à `pg_dump --snapshot` : le dump et le
   fichier d’état décrivent le même instant, même si la base est modifiée
@@ -102,10 +107,10 @@ COMMIT;
 - **Les valeurs sont restaurées telles quelles.** PostgreSQL se charge de
   l’échappement (`quote_nullable()`), et les triggers utilisateur comme
   « mettre à jour `updated_at` » sont désactivés pendant l’écriture.
-- **Les changements de schéma sont détectés.** Si une table ou une colonne est
-  apparue ou a disparu depuis la sauvegarde de base, le delta échoue avec un
-  message clair (« faites d’abord une sauvegarde complète ») au lieu de
-  produire un fichier impossible à restaurer.
+- **Un changement de schéma ne bloque jamais une sauvegarde.** Si une table ou
+  une colonne est apparue ou a disparu depuis la sauvegarde de base, ou si
+  celle-ci n’existe plus, le worker réalise une sauvegarde complète et la liste
+  indique pourquoi, au lieu de produire un delta impossible à restaurer.
 - **Des tâches en arrière-plan sans infrastructure supplémentaire.** La file
   est une table de la base de l’application ; `backup_worker` prend les tâches
   avec `SELECT … FOR UPDATE SKIP LOCKED`, plusieurs workers peuvent donc
@@ -269,25 +274,12 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-124 tests, couverture de 97 % ; S3 est testé avec moto. La CI démarre
+131 tests, couverture de 97 % ; S3 est testé avec moto. La CI démarre
 PostgreSQL 16 pour les tests d’intégration puis, après le build de l’image,
 lance toute la stack compose et réalise des sauvegardes complètes et
-incrémentales via le worker, sur disque local comme dans MinIO
+incrémentales via le worker, sur disque local comme dans MinIO, y compris un
+changement de schéma qui transforme un delta en sauvegarde complète
 ([`docker/smoke_test.py`](docker/smoke_test.py)).
-
-## Limites
-
-- Un delta compare chaque ligne : chaque sauvegarde lit les tables en entier,
-  et le worker garde en mémoire les empreintes de la plus grande table. C’est
-  adapté jusqu’à plusieurs millions de lignes ; au-delà, l’outil approprié est
-  la réplication logique (WAL).
-- Les changements de schéma (nouvelles tables ou colonnes) ne passent pas par
-  les deltas : l’application les détecte et demande une nouvelle sauvegarde
-  complète.
-- Une table sans clé primaire est réécrite entièrement à chaque changement.
-- Les sauvegardes réalisées avant l’existence des fichiers d’état ne peuvent
-  pas servir de base aux deltas ; la sauvegarde complète suivante ouvre une
-  nouvelle chaîne.
 
 ## Structure du projet
 

@@ -15,11 +15,13 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from urllib.parse import urlparse
 
 import psycopg2
 from django.test import SimpleTestCase, override_settings
 
+from backuper import utils
 from backuper.utils import BackupFailed, delta_backup, full_backup
 
 DSN = os.environ.get("INTEGRATION_DATABASE_URL")
@@ -71,7 +73,11 @@ INSERT INTO customers (name, profile, tags) VALUES
 INSERT INTO orders (customer_id, total, note) VALUES
     (1, 100.50, '\\x00ff'), (2, 20, NULL), (3, 5, NULL);
 INSERT INTO order_items VALUES (1, 1, 'A'), (1, 2, 'B'), (2, 1, 'C');
-INSERT INTO audit_log VALUES ('created', '2026-01-01 00:00:00+00');
+INSERT INTO audit_log VALUES
+    ('created', '2026-01-01 00:00:00+00'),
+    ('login', '2026-01-02 00:00:00+00'),
+    ('login', '2026-01-02 00:00:00+00'),
+    ('login', '2026-01-02 00:00:00+00');
 INSERT INTO billing.invoices VALUES ('INV-1', 1, 100.50), ('INV-2', 2, 20);
 """
 
@@ -114,6 +120,12 @@ class PostgresRoundTripTests(SimpleTestCase):
         override = override_settings(PG_DUMP_PATH="pg_dump")
         override.enable()
         self.addCleanup(override.disable)
+        # Крошечные пачки: каждый тест проходит через сброс пачек ключей и
+        # порционную выборку серверным курсором.
+        for name in ("KEY_BATCH", "FETCH_SIZE"):
+            patcher = patch.object(utils, name, 2)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     @classmethod
     def tearDownClass(cls):
@@ -198,8 +210,10 @@ class PostgresRoundTripTests(SimpleTestCase):
             DELETE FROM order_items WHERE order_id = 2;
             DELETE FROM orders WHERE id = 3;
             DELETE FROM customers WHERE id = 3;
-            -- таблица без первичного ключа
+            -- таблица без первичного ключа: новая строка и один из дублей
             INSERT INTO audit_log VALUES ('changed', '2026-02-01 00:00:00+00');
+            DELETE FROM audit_log WHERE ctid = (
+                SELECT ctid FROM audit_log WHERE message = 'login' LIMIT 1);
         """)
         stats = self.delta("full", "incr1")
         self.assertGreater(stats["deleted"], 0)
@@ -208,6 +222,7 @@ class PostgresRoundTripTests(SimpleTestCase):
             UPDATE customers SET name = 'O''Brien Jr.' WHERE id = 2;
             UPDATE billing.invoices SET amount = 21 WHERE number = 'INV-2';
             DELETE FROM audit_log WHERE message = 'created';
+            INSERT INTO audit_log VALUES ('login', '2026-01-02 00:00:00+00');
             -- значение последовательности уходит вперёд без новых строк
             SELECT nextval('orders_id_seq');
         """)
@@ -238,13 +253,33 @@ class PostgresRoundTripTests(SimpleTestCase):
         self.restore("full", "same")
         self.assertEqual(self._snapshot(self.TARGET), self._snapshot(self.SOURCE))
 
-    def test_schema_change_requires_new_full_backup(self):
+    def test_unkeyed_table_changes_only_what_changed(self):
+        self.full("full")
+        self._execute(self.SOURCE, """
+            DELETE FROM audit_log WHERE ctid = (
+                SELECT ctid FROM audit_log WHERE message = 'login' LIMIT 1);
+        """)
+        stats = self.delta("full", "one")
+        # удалена одна строка из трёх одинаковых, а не переписана вся таблица
+        self.assertEqual((stats["changed"], stats["deleted"]), (0, 1))
+        self.restore("full", "one")
+        self.assertEqual(self._snapshot(self.TARGET), self._snapshot(self.SOURCE))
+
+    def test_schema_change_asks_for_full_backup(self):
         self.full("full")
         self._execute(self.SOURCE, "ALTER TABLE orders ADD COLUMN paid boolean;")
         with self.assertRaises(BackupFailed) as ctx:
             self.delta("full", "broken")
-        self.assertEqual(ctx.exception.code, BackupFailed.SCHEMA_CHANGED)
+        self.assertEqual(ctx.exception.code, BackupFailed.NEEDS_FULL)
         self.assertIn("orders", ctx.exception.detail)
+
+    def test_old_state_format_asks_for_full_backup(self):
+        import gzip
+        with gzip.open(self.path("old.state"), "wt") as handle:
+            handle.write('{"format": 1, "tables": {}}')
+        with self.assertRaises(BackupFailed) as ctx:
+            self.delta("old", "new")
+        self.assertEqual(ctx.exception.code, BackupFailed.NEEDS_FULL)
 
     def test_wrong_password_is_a_connection_error(self):
         params = {**self.params(), "password": "definitely-wrong"}

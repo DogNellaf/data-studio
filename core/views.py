@@ -10,7 +10,13 @@ from django.views.decorators.http import require_http_methods
 
 from core.forms import BackupForm
 from core.models import Backup, BackupType, Storage
-from core.services import BackupError, delete_backup, enqueue_backup, error_message
+from core.services import (
+    BackupError,
+    delete_backup,
+    enqueue_backup,
+    error_message,
+    promotion_note,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +28,7 @@ def index(request):
     )
     for backup in backups:
         backup.error_text = error_message(backup) if backup.status == Backup.FAILED else ""
+        backup.note = promotion_note(backup)
     stats = Backup.objects.filter(user=request.user).aggregate(
         count=Count("id", filter=Q(status=Backup.SUCCEEDED)),
         total_size=Sum("size", filter=Q(status=Backup.SUCCEEDED)),
