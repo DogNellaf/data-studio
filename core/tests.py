@@ -454,8 +454,34 @@ class LanguageTests(TestCase):
         self.client.post("/i18n/setlang/", {"language": "en", "next": "/"})
         self.assertContains(self.client.get("/"), "No backups yet")
 
-    def test_unknown_language_cookie_falls_back_to_english(self):
+    def test_every_language_is_translated(self):
+        expected = {
+            "ru": ("Типы копий", "Дифференциальная"),
+            "fr": ("Types de sauvegarde", "Différentielle"),
+            "de": ("Sicherungstypen", "Differenziell"),
+        }
+        for language, phrases in expected.items():
+            with self.subTest(language=language):
+                self.client.cookies["django_language"] = language
+                page = self.client.get("/backup_types")
+                self.assertContains(page, f'<html lang="{language}">')
+                for phrase in phrases:
+                    self.assertContains(page, phrase)
+
+    def test_switcher_lists_all_languages(self):
+        page = self.client.get("/")
+        for code in ("en", "ru", "fr", "de"):
+            self.assertContains(page, f'name="language" value="{code}"')
+
+    def test_language_does_not_leak_after_request(self):
+        from django.utils import translation
+
         self.client.cookies["django_language"] = "de"
+        self.client.get("/")
+        self.assertEqual(translation.get_language(), "en")
+
+    def test_unknown_language_cookie_falls_back_to_english(self):
+        self.client.cookies["django_language"] = "it"
         self.assertContains(self.client.get("/"), '<html lang="en">')
 
     def test_russian_plural_forms(self):

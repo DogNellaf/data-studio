@@ -21,10 +21,11 @@ class LanguageCookieMiddleware:
         if language not in self.supported:
             language = settings.LANGUAGE_CODE
 
-        translation.activate(language)
         request.LANGUAGE_CODE = language
-
-        response = self.get_response(request)
+        # override, а не activate: язык запроса не должен остаться активным
+        # в потоке и просочиться в следующий запрос или фоновый код.
+        with translation.override(language):
+            response = self.get_response(request)
         response.headers.setdefault("Content-Language", language)
         patch_vary_headers(response, ("Cookie",))
         return response

@@ -1,6 +1,6 @@
 # DataStudio
 
-> 🇬🇧 English | [🇷🇺 Русский](README.ru.md)
+> 🇬🇧 English | [🇷🇺 Русский](README.ru.md) | [🇫🇷 Français](README.fr.md) | [🇩🇪 Deutsch](README.de.md)
 
 [![CI](https://github.com/DogNellaf/data-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/DogNellaf/data-studio/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%E2%80%933.12-3776AB)
@@ -11,8 +11,8 @@
 A web app for backing up PostgreSQL databases. It takes full backups with
 `pg_dump` and incremental and differential backups on top of them. You can
 download and delete backups, and each user sees only their own. The UI is in
-English by default and switches to Russian with the EN / RU toggle in the
-header.
+English by default and is also available in Russian, French and German via
+the language switcher in the header.
 
 ![Backups list](docs/screenshots/en/backups.png)
 
@@ -97,10 +97,12 @@ COMMIT;
 ### Localization
 
 - The whole UI is translated with Django's gettext: English source strings,
-  with Russian in `locale/ru/`, including plural forms ("2 databases",
-  "5 баз данных").
+  with Russian, French and German catalogs in `locale/`, including plural
+  forms ("2 databases", "5 баз данных", "2 bases de données").
 - English is the default for everyone. The browser's `Accept-Language` is
-  deliberately ignored; the EN / RU switcher stores the choice in a cookie.
+  deliberately ignored; the EN / RU / FR / DE switcher stores the choice in a
+  cookie, and the language is scoped to the request so it cannot leak into the
+  next one.
 - Backup type names and descriptions come from translatable strings keyed by
   a stable code, not from database rows, so they follow the chosen language.
 - CI checks that the compiled `.mo` catalog matches the `.po` source.
@@ -142,7 +144,8 @@ involved:
   layer;
 - rebuilding the UI: hand-written CSS instead of a Tailwind CDN build, with
   dark mode, a responsive layout, empty states and clear errors;
-- translating the interface: English by default, Russian on demand;
+- translating the interface: English by default, plus Russian, French and
+  German;
 - adding Docker, CI (lint, unit and integration tests, image build) and demo
   data.
 
@@ -206,7 +209,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-There are 95 tests with 98% coverage. CI starts PostgreSQL 16 and runs the
+There are 98 tests with 98% coverage. CI starts PostgreSQL 16 and runs the
 real `pg_dump` and `psql`.
 
 ## Limitations
@@ -229,7 +232,7 @@ These are known limits of the current implementation:
 ├── core/                # Backups: models, forms, services, views, templates, CSS
 ├── custom_auth/         # Login, registration, profile
 ├── datastudio/          # Settings and root URLconf
-├── locale/ru/           # Russian translation (gettext)
+├── locale/              # Russian, French and German translations (gettext)
 ├── docker/              # Entrypoint and demo database seed
 ├── docs/screenshots/
 ├── Dockerfile

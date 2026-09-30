@@ -1,0 +1,561 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-30 16:51+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: core/forms.py:11
+msgid "Backup type"
+msgstr "Type de sauvegarde"
+
+#: core/forms.py:15
+msgid "This backup type does not exist"
+msgstr "Ce type de sauvegarde n’existe pas"
+
+#: core/forms.py:18
+msgid "Host"
+msgstr "Hôte"
+
+#: core/forms.py:20
+msgid "db.example.com or 10.0.0.5"
+msgstr "db.example.com ou 10.0.0.5"
+
+#: core/forms.py:23
+msgid "Port"
+msgstr "Port"
+
+#: core/forms.py:29 core/templates/index.html:37 core/templates/remove.html:16
+msgid "Database"
+msgstr "Base de données"
+
+#: core/forms.py:34 core/templates/remove.html:19
+msgid "Database user"
+msgstr "Utilisateur de la base"
+
+#: core/forms.py:39
+msgid "Database password"
+msgstr "Mot de passe de la base"
+
+#: core/forms.py:42
+msgid "Used only to take this backup and never stored."
+msgstr "Utilisé uniquement pour cette sauvegarde, jamais conservé."
+
+#: core/forms.py:46 core/templates/index.html:39
+msgid "Storage"
+msgstr "Stockage"
+
+#: core/forms.py:49
+msgid "This storage does not exist"
+msgstr "Ce stockage n’existe pas"
+
+#: core/models.py:23
+msgid "Full"
+msgstr "Complète"
+
+#: core/models.py:24
+msgid "Incremental"
+msgstr "Incrémentale"
+
+#: core/models.py:25
+msgid "Differential"
+msgstr "Différentielle"
+
+#: core/models.py:29
+msgid "The whole database, the base for the others"
+msgstr "Toute la base, socle des autres sauvegardes"
+
+#: core/models.py:30
+msgid "Changes since the last backup of any type"
+msgstr "Modifications depuis la dernière sauvegarde, quel que soit son type"
+
+#: core/models.py:31
+msgid "Changes since the last full backup"
+msgstr "Modifications depuis la dernière sauvegarde complète"
+
+#: core/models.py:36
+msgid ""
+"A complete pg_dump snapshot: schema and all data. Self-contained and the "
+"base for the other backup types."
+msgstr ""
+"Un instantané pg_dump complet : schéma et toutes les données. Autonome, il "
+"sert de base aux autres types de sauvegarde."
+
+#: core/models.py:40
+msgid ""
+"Rows changed since the last backup of any type. The smallest backup, but a "
+"restore needs the whole chain."
+msgstr ""
+"Lignes modifiées depuis la dernière sauvegarde, quel que soit son type. La "
+"plus compacte, mais la restauration exige toute la chaîne."
+
+#: core/models.py:44
+msgid ""
+"Rows changed since the last full backup. A restore needs only the full "
+"backup and the latest differential one."
+msgstr ""
+"Lignes modifiées depuis la dernière sauvegarde complète. La restauration "
+"n’exige que la sauvegarde complète et la dernière différentielle."
+
+#: core/models.py:50
+msgid "code"
+msgstr "code"
+
+#: core/models.py:54
+msgid "Selects the backup algorithm"
+msgstr "Détermine l’algorithme de sauvegarde"
+
+#: core/models.py:58 core/models.py:151
+msgid "backup type"
+msgstr "type de sauvegarde"
+
+#: core/models.py:59
+msgid "backup types"
+msgstr "types de sauvegarde"
+
+#: core/models.py:83
+msgid "title"
+msgstr "nom"
+
+#: core/models.py:88 core/models.py:104
+msgid "storage type"
+msgstr "type de stockage"
+
+#: core/models.py:89
+msgid "storage types"
+msgstr "types de stockage"
+
+#: core/models.py:98
+msgid "location"
+msgstr "emplacement"
+
+#: core/models.py:109 core/models.py:145
+msgid "storage"
+msgstr "stockage"
+
+#: core/models.py:110
+msgid "storages"
+msgstr "stockages"
+
+#: core/models.py:125
+msgid "database user"
+msgstr "utilisateur de la base"
+
+#: core/models.py:130
+msgid "database"
+msgstr "base de données"
+
+#: core/models.py:135
+msgid "host"
+msgstr "hôte"
+
+#: core/models.py:140
+msgid "port"
+msgstr "port"
+
+#: core/models.py:157
+msgid "owner"
+msgstr "propriétaire"
+
+#: core/models.py:162
+msgid "file size, bytes"
+msgstr "taille du fichier, octets"
+
+#: core/models.py:168
+msgid "created at"
+msgstr "créée le"
+
+#: core/models.py:173
+msgid "backup"
+msgstr "sauvegarde"
+
+#: core/models.py:174
+msgid "backups"
+msgstr "sauvegardes"
+
+#: core/services.py:28
+msgid "An incremental backup needs a full backup of the same database first"
+msgstr ""
+"Une sauvegarde incrémentale nécessite d’abord une sauvegarde complète de la "
+"même base"
+
+#: core/services.py:31
+msgid "A differential backup needs a full backup of the same database first"
+msgstr ""
+"Une sauvegarde différentielle nécessite d’abord une sauvegarde complète de "
+"la même base"
+
+#: core/services.py:70
+msgid "Could not connect to the database: check the address and credentials"
+msgstr ""
+"Connexion à la base impossible : vérifiez l’adresse et les identifiants"
+
+#: core/services.py:95
+msgid "The backup failed, see the server log for details"
+msgstr "La sauvegarde a échoué, voir le journal du serveur pour les détails"
+
+#: core/templates/404.html:3 core/templates/404.html:8
+msgid "Page not found"
+msgstr "Page introuvable"
+
+#: core/templates/404.html:9
+msgid "The backup may have been deleted, or the link is out of date."
+msgstr "La sauvegarde a peut-être été supprimée, ou le lien est obsolète."
+
+#: core/templates/404.html:10
+msgid "Back to backups"
+msgstr "Retour aux sauvegardes"
+
+#: core/templates/backup_types.html:3 core/templates/backup_types.html:7
+#: core/templates/base.html:19
+msgid "Backup types"
+msgstr "Types de sauvegarde"
+
+#: core/templates/backup_types.html:8
+msgid "How the backup methods differ and when to use each one."
+msgstr ""
+"Ce qui distingue les méthodes de sauvegarde et quand utiliser chacune."
+
+#: core/templates/base.html:8
+msgid ""
+"DataStudio backs up PostgreSQL databases: full, incremental and differential"
+" backups."
+msgstr ""
+"DataStudio sauvegarde les bases PostgreSQL : sauvegardes complètes, "
+"incrémentales et différentielles."
+
+#: core/templates/base.html:17
+msgid "Main navigation"
+msgstr "Navigation principale"
+
+#: core/templates/base.html:18
+msgctxt "navigation"
+msgid "Backups"
+msgstr "Sauvegardes"
+
+#: core/templates/base.html:20 core/templates/storages.html:3
+#: core/templates/storages.html:7
+msgid "Storages"
+msgstr "Stockages"
+
+#: core/templates/base.html:24 custom_auth/templates/profile.html:3
+#: custom_auth/templates/profile.html:8
+msgid "Profile"
+msgstr "Profil"
+
+#: core/templates/base.html:28
+msgid "Sign out"
+msgstr "Déconnexion"
+
+#: core/templates/create.html:3 core/templates/create.html:8
+#: core/templates/index.html:10
+msgid "New backup"
+msgstr "Nouvelle sauvegarde"
+
+#: core/templates/create.html:9
+msgid ""
+"DataStudio connects to the database, checks access and takes the backup "
+"right away."
+msgstr ""
+"DataStudio se connecte à la base, vérifie l’accès et lance la sauvegarde "
+"aussitôt."
+
+#: core/templates/create.html:18
+msgid "Backup method"
+msgstr "Méthode de sauvegarde"
+
+#: core/templates/create.html:31
+msgid "PostgreSQL connection"
+msgstr "Connexion PostgreSQL"
+
+#: core/templates/create.html:46 core/templates/remove.html:27
+msgid "Cancel"
+msgstr "Annuler"
+
+#: core/templates/create.html:47
+msgid "Take backup"
+msgstr "Sauvegarder"
+
+#: core/templates/index.html:3 core/templates/index.html:7
+msgid "Backups"
+msgstr "Sauvegardes"
+
+#: core/templates/index.html:8
+msgid "PostgreSQL backups taken by your account."
+msgstr "Sauvegardes PostgreSQL réalisées par votre compte."
+
+#: core/templates/index.html:13
+msgid "Summary"
+msgstr "Résumé"
+
+#: core/templates/index.html:15
+msgid "Total backups"
+msgstr "Sauvegardes"
+
+#: core/templates/index.html:17
+#, python-format
+msgid "%(counter)s database"
+msgid_plural "%(counter)s databases"
+msgstr[0] "%(counter)s base de données"
+msgstr[1] "%(counter)s bases de données"
+
+#: core/templates/index.html:20
+msgid "Disk usage"
+msgstr "Espace disque"
+
+#: core/templates/index.html:22
+msgid "across all backup files"
+msgstr "pour l’ensemble des fichiers"
+
+#: core/templates/index.html:25
+msgid "Latest backup"
+msgstr "Dernière sauvegarde"
+
+#: core/templates/index.html:27
+msgid "none yet"
+msgstr "aucune pour l’instant"
+
+#: core/templates/index.html:38 core/templates/remove.html:17
+#: core/templates/storages.html:16
+msgid "Type"
+msgstr "Type"
+
+#: core/templates/index.html:40 core/templates/remove.html:21
+msgid "Size"
+msgstr "Taille"
+
+#: core/templates/index.html:41 core/templates/remove.html:20
+msgid "Created"
+msgstr "Créée"
+
+#: core/templates/index.html:42
+msgid "Actions"
+msgstr "Actions"
+
+#: core/templates/index.html:61
+msgid "Download"
+msgstr "Télécharger"
+
+#: core/templates/index.html:61
+#, python-format
+msgid "Download backup of %(db)s"
+msgstr "Télécharger la sauvegarde de %(db)s"
+
+#: core/templates/index.html:62 core/templates/remove.html:28
+msgid "Delete"
+msgstr "Supprimer"
+
+#: core/templates/index.html:62
+#, python-format
+msgid "Delete backup of %(db)s"
+msgstr "Supprimer la sauvegarde de %(db)s"
+
+#: core/templates/index.html:73
+msgid "No backups yet"
+msgstr "Aucune sauvegarde pour l’instant"
+
+#: core/templates/index.html:74
+msgid ""
+"Start with a full backup: incremental and differential backups are built on "
+"top of it."
+msgstr ""
+"Commencez par une sauvegarde complète : les sauvegardes incrémentales et "
+"différentielles s’appuient dessus."
+
+#: core/templates/index.html:75
+msgid "Create your first backup"
+msgstr "Créer votre première sauvegarde"
+
+#: core/templates/remove.html:3
+msgid "Delete backup"
+msgstr "Supprimer la sauvegarde"
+
+#: core/templates/remove.html:8
+msgid "Delete this backup?"
+msgstr "Supprimer cette sauvegarde ?"
+
+#: core/templates/remove.html:9
+msgid "The record and its file will be deleted permanently."
+msgstr "L’enregistrement et son fichier seront définitivement supprimés."
+
+#: core/templates/remove.html:18
+msgid "Server"
+msgstr "Serveur"
+
+#: core/templates/remove.html:24
+msgid ""
+"This is a full backup: incremental and differential backups taken after it "
+"cannot be restored without it."
+msgstr ""
+"C’est une sauvegarde complète : les sauvegardes incrémentales et "
+"différentielles réalisées ensuite ne peuvent pas être restaurées sans elle."
+
+#: core/templates/storages.html:8
+msgid "Where backup files are kept. The list is managed by an administrator."
+msgstr ""
+"Où sont conservés les fichiers de sauvegarde. La liste est gérée par un "
+"administrateur."
+
+#: core/templates/storages.html:16
+msgid "Location"
+msgstr "Emplacement"
+
+#: core/templates/storages.html:16
+msgid "Your backups"
+msgstr "Vos sauvegardes"
+
+#: core/templates/storages.html:31
+msgid "No storages"
+msgstr "Aucun stockage"
+
+#: core/templates/storages.html:32
+msgid "Add a storage in the admin panel."
+msgstr "Ajoutez un stockage dans l’interface d’administration."
+
+#: core/views.py:33
+msgid "The backup file is missing on disk"
+msgstr "Le fichier de sauvegarde est introuvable sur le disque"
+
+#: core/views.py:55
+#, python-format
+msgid "Backup of “%(db)s” created"
+msgstr "Sauvegarde de « %(db)s » créée"
+
+#: core/views.py:72
+msgid "Backup deleted"
+msgstr "Sauvegarde supprimée"
+
+#: custom_auth/forms.py:10
+msgid "Incorrect username or password"
+msgstr "Nom d’utilisateur ou mot de passe incorrect"
+
+#: custom_auth/forms.py:11
+msgid "This account is disabled"
+msgstr "Ce compte est désactivé"
+
+#: custom_auth/forms.py:25
+msgid "New password"
+msgstr "Nouveau mot de passe"
+
+#: custom_auth/forms.py:29
+msgid "Leave empty to keep the current password."
+msgstr "Laissez vide pour conserver le mot de passe actuel."
+
+#: custom_auth/forms.py:32
+msgid "Repeat password"
+msgstr "Confirmer le mot de passe"
+
+#: custom_auth/forms.py:48
+msgid "The passwords do not match"
+msgstr "Les mots de passe ne correspondent pas"
+
+#: custom_auth/templates/auth_base.html:8
+msgid "PostgreSQL backups without a console or scripts"
+msgstr "Des sauvegardes PostgreSQL sans console ni scripts"
+
+#: custom_auth/templates/auth_base.html:9
+msgid ""
+"Connect a database, choose a backup method and get a file you can download "
+"and restore."
+msgstr ""
+"Connectez une base, choisissez une méthode et obtenez un fichier à "
+"télécharger et à restaurer."
+
+#: custom_auth/templates/auth_base.html:11
+msgid ""
+"Full backups with <code>pg_dump</code>, plus incremental and differential "
+"ones"
+msgstr ""
+"Sauvegardes complètes avec <code>pg_dump</code>, plus incrémentales et "
+"différentielles"
+
+#: custom_auth/templates/auth_base.html:12
+msgid ""
+"Database passwords are never stored, and every user sees only their own "
+"backups"
+msgstr ""
+"Les mots de passe des bases ne sont jamais conservés, et chacun ne voit que "
+"ses propres sauvegardes"
+
+#: custom_auth/templates/auth_base.html:13
+msgid ""
+"The connection is checked before the backup starts, with clear error "
+"messages"
+msgstr ""
+"La connexion est vérifiée avant la sauvegarde, avec des messages d’erreur "
+"clairs"
+
+#: custom_auth/templates/login.html:3 custom_auth/templates/login.html:5
+msgid "Sign in"
+msgstr "Connexion"
+
+#: custom_auth/templates/login.html:6
+msgid "Sign in to manage your backups."
+msgstr "Connectez-vous pour gérer vos sauvegardes."
+
+#: custom_auth/templates/login.html:8
+msgid "Demo access:"
+msgstr "Accès démo :"
+
+#: custom_auth/templates/login.html:16 custom_auth/templates/register.html:15
+msgctxt "action"
+msgid "Sign in"
+msgstr "Se connecter"
+
+#: custom_auth/templates/login.html:18
+msgid "No account yet?"
+msgstr "Pas encore de compte ?"
+
+#: custom_auth/templates/login.html:18
+msgid "Create one"
+msgstr "Créer un compte"
+
+#: custom_auth/templates/profile.html:9
+msgid "Your DataStudio username and password."
+msgstr "Votre nom d’utilisateur et votre mot de passe DataStudio."
+
+#: custom_auth/templates/profile.html:18
+msgid "Change password"
+msgstr "Changer le mot de passe"
+
+#: custom_auth/templates/profile.html:23
+msgid "Save"
+msgstr "Enregistrer"
+
+#: custom_auth/templates/register.html:3 custom_auth/templates/register.html:5
+msgid "Create account"
+msgstr "Créer un compte"
+
+#: custom_auth/templates/register.html:6
+msgid "It takes half a minute."
+msgstr "Cela prend une demi-minute."
+
+#: custom_auth/templates/register.html:13
+msgctxt "action"
+msgid "Create account"
+msgstr "Créer le compte"
+
+#: custom_auth/templates/register.html:15
+msgid "Already have an account?"
+msgstr "Vous avez déjà un compte ?"
+
+#: custom_auth/views.py:30
+msgid "Your account is ready, you can sign in now"
+msgstr "Votre compte est prêt, vous pouvez vous connecter"
+
+#: custom_auth/views.py:48
+msgid "Profile saved"
+msgstr "Profil enregistré"

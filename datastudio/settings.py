@@ -156,7 +156,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-# English is the default; the header switcher stores Russian in a cookie.
+# English is the default; the header switcher stores another language in a
+# cookie.
 # The browser's Accept-Language is deliberately ignored, so every visitor
 # sees the same default until they pick a language.
 LANGUAGE_CODE = 'en'
@@ -164,6 +165,8 @@ LANGUAGE_CODE = 'en'
 LANGUAGES = [
     ('en', 'English'),
     ('ru', 'Русский'),
+    ('fr', 'Français'),
+    ('de', 'Deutsch'),
 ]
 
 LOCALE_PATHS = [BASE_DIR / 'locale']
