@@ -46,6 +46,11 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - name: pg_dump version
         run: pg_dump --version
+      - name: Compiled translations are up to date
+        run: |
+          sudo apt-get install -y -q gettext
+          python manage.py compilemessages --settings=datastudio.settings_test
+          git diff --exit-code -- locale
       - name: Migrations are up to date
         run: python manage.py makemigrations --check --dry-run --settings=datastudio.settings_test
       - name: Tests with coverage

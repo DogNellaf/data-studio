@@ -1,15 +1,16 @@
 {% extends "auth_base.html" %}
-{% block title %}Регистрация{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Create account" %}{% endblock %}
 {% block auth_content %}
-<h2>Регистрация</h2>
-<p>Создайте учётную запись — это займёт полминуты.</p>
+<h2>{% translate "Create account" %}</h2>
+<p>{% translate "It takes half a minute." %}</p>
 <form class="form" method="post" novalidate>
   {% csrf_token %}
   {% include "partials/form_errors.html" %}
   {% include "partials/field.html" with field=form.username %}
   {% include "partials/field.html" with field=form.password1 %}
   {% include "partials/field.html" with field=form.password2 %}
-  <button class="btn btn--primary btn--block" type="submit">Создать аккаунт</button>
+  <button class="btn btn--primary btn--block" type="submit">{% translate "Create account" context "action" %}</button>
 </form>
-<div class="auth__switch">Уже есть аккаунт? <a href="{% url 'custom_auth.login' %}">Войти</a></div>
+<div class="auth__switch">{% translate "Already have an account?" %} <a href="{% url 'custom_auth.login' %}">{% translate "Sign in" context "action" %}</a></div>
 {% endblock %}

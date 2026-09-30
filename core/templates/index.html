@@ -1,30 +1,30 @@
 {% extends "base.html" %}
-{% load humanize %}
-{% block title %}Резервные копии{% endblock %}
+{% load humanize i18n %}
+{% block title %}{% translate "Backups" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Резервные копии</h1>
-    <p>Копии баз PostgreSQL, снятые вашей учётной записью.</p>
+    <h1>{% translate "Backups" %}</h1>
+    <p>{% translate "PostgreSQL backups taken by your account." %}</p>
   </div>
-  <a class="btn btn--primary" href="{% url 'core.create' %}">{% include "icons/plus.svg" %}Новая копия</a>
+  <a class="btn btn--primary" href="{% url 'core.create' %}">{% include "icons/plus.svg" %}{% translate "New backup" %}</a>
 </div>
 
-<section class="stats" aria-label="Сводка">
+<section class="stats" aria-label="{% translate 'Summary' %}">
   <div class="card stat">
-    <div class="stat__label">Всего копий</div>
+    <div class="stat__label">{% translate "Total backups" %}</div>
     <div class="stat__value">{{ stats.count }}</div>
-    <div class="stat__hint">баз данных: {{ stats.databases }}</div>
+    <div class="stat__hint">{% blocktranslate count counter=stats.databases %}{{ counter }} database{% plural %}{{ counter }} databases{% endblocktranslate %}</div>
   </div>
   <div class="card stat">
-    <div class="stat__label">Занято на диске</div>
+    <div class="stat__label">{% translate "Disk usage" %}</div>
     <div class="stat__value">{{ stats.total_size|default:0|filesizeformat }}</div>
-    <div class="stat__hint">суммарно по всем файлам</div>
+    <div class="stat__hint">{% translate "across all backup files" %}</div>
   </div>
   <div class="card stat">
-    <div class="stat__label">Последняя копия</div>
+    <div class="stat__label">{% translate "Latest backup" %}</div>
     <div class="stat__value">{% if stats.last_created %}{{ stats.last_created|naturaltime }}{% else %}—{% endif %}</div>
-    <div class="stat__hint">{% if stats.last_created %}{{ stats.last_created|date:"d.m.Y H:i" }}{% else %}ещё не создавалась{% endif %}</div>
+    <div class="stat__hint">{% if stats.last_created %}{{ stats.last_created|date:"SHORT_DATETIME_FORMAT" }}{% else %}{% translate "none yet" %}{% endif %}</div>
   </div>
 </section>
 
@@ -34,12 +34,12 @@
     <table class="backup-table">
       <thead>
         <tr>
-          <th>База данных</th>
-          <th>Тип</th>
-          <th class="hide-sm">Хранилище</th>
-          <th class="num hide-sm">Размер</th>
-          <th>Создана</th>
-          <th class="num"><span class="hide-sm">Действия</span></th>
+          <th>{% translate "Database" %}</th>
+          <th>{% translate "Type" %}</th>
+          <th class="hide-sm">{% translate "Storage" %}</th>
+          <th class="num hide-sm">{% translate "Size" %}</th>
+          <th>{% translate "Created" %}</th>
+          <th class="num"><span class="hide-sm">{% translate "Actions" %}</span></th>
         </tr>
       </thead>
       <tbody>
@@ -49,17 +49,17 @@
             <div class="cell-main">{{ backup.db }}</div>
             <div class="cell-sub mono">{{ backup.username }}@{{ backup.host }}:{{ backup.port }}</div>
           </td>
-          <td><span class="badge badge--{{ backup.type.code }}">{{ backup.type.title }}</span></td>
+          <td><span class="badge badge--{{ backup.type.code }}">{{ backup.type.label }}</span></td>
           <td class="hide-sm cell-sub">{{ backup.storage.location }}</td>
           <td class="num hide-sm">{{ backup.size|filesizeformat|default:"—" }}</td>
           <td>
-            <div>{{ backup.created_at|date:"d.m.Y H:i" }}</div>
+            <div>{{ backup.created_at|date:"SHORT_DATETIME_FORMAT" }}</div>
             <div class="cell-sub">{{ backup.created_at|naturaltime }}</div>
           </td>
           <td>
             <div class="actions">
-              <a class="icon-btn" href="{% url 'core.download' backup.id %}" title="Скачать" aria-label="Скачать копию {{ backup.db }}">{% include "icons/download.svg" %}</a>
-              <a class="icon-btn icon-btn--danger" href="{% url 'core.remove' backup.id %}" title="Удалить" aria-label="Удалить копию {{ backup.db }}">{% include "icons/trash.svg" %}</a>
+              <a class="icon-btn" href="{% url 'core.download' backup.id %}" title="{% translate 'Download' %}" aria-label="{% blocktranslate with db=backup.db %}Download backup of {{ db }}{% endblocktranslate %}">{% include "icons/download.svg" %}</a>
+              <a class="icon-btn icon-btn--danger" href="{% url 'core.remove' backup.id %}" title="{% translate 'Delete' %}" aria-label="{% blocktranslate with db=backup.db %}Delete backup of {{ db }}{% endblocktranslate %}">{% include "icons/trash.svg" %}</a>
             </div>
           </td>
         </tr>
@@ -70,9 +70,9 @@
 {% else %}
   <div class="empty">
     {% include "icons/database.svg" %}
-    <h2>Копий пока нет</h2>
-    <p>Начните с полной копии: она нужна как основа для инкрементальных и дифференциальных.</p>
-    <a class="btn btn--primary" href="{% url 'core.create' %}">{% include "icons/plus.svg" %}Создать первую копию</a>
+    <h2>{% translate "No backups yet" %}</h2>
+    <p>{% translate "Start with a full backup: incremental and differential backups are built on top of it." %}</p>
+    <a class="btn btn--primary" href="{% url 'core.create' %}">{% include "icons/plus.svg" %}{% translate "Create your first backup" %}</a>
   </div>
 {% endif %}
 </div>

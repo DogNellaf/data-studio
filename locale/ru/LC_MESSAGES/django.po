@@ -1,0 +1,551 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-30 16:03+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+
+#: core/forms.py:11
+msgid "Backup type"
+msgstr "Тип резервной копии"
+
+#: core/forms.py:15
+msgid "This backup type does not exist"
+msgstr "Такого типа копирования не существует"
+
+#: core/forms.py:18
+msgid "Host"
+msgstr "Хост"
+
+#: core/forms.py:20
+msgid "db.example.com or 10.0.0.5"
+msgstr "db.example.com или 10.0.0.5"
+
+#: core/forms.py:23
+msgid "Port"
+msgstr "Порт"
+
+#: core/forms.py:29 core/templates/index.html:37 core/templates/remove.html:16
+msgid "Database"
+msgstr "База данных"
+
+#: core/forms.py:34 core/templates/remove.html:19
+msgid "Database user"
+msgstr "Пользователь БД"
+
+#: core/forms.py:39
+msgid "Database password"
+msgstr "Пароль БД"
+
+#: core/forms.py:42
+msgid "Used only to take this backup and never stored."
+msgstr "Используется только для снятия копии и нигде не сохраняется."
+
+#: core/forms.py:46 core/templates/index.html:39
+msgid "Storage"
+msgstr "Хранилище"
+
+#: core/forms.py:49
+msgid "This storage does not exist"
+msgstr "Такого хранилища не существует"
+
+#: core/models.py:23
+msgid "Full"
+msgstr "Полная"
+
+#: core/models.py:24
+msgid "Incremental"
+msgstr "Инкрементальная"
+
+#: core/models.py:25
+msgid "Differential"
+msgstr "Дифференциальная"
+
+#: core/models.py:29
+msgid "The whole database, the base for the others"
+msgstr "Вся база целиком, основа для остальных"
+
+#: core/models.py:30
+msgid "Changes since the last backup of any type"
+msgstr "Изменения с последней копии любого типа"
+
+#: core/models.py:31
+msgid "Changes since the last full backup"
+msgstr "Изменения с последней полной копии"
+
+#: core/models.py:36
+msgid ""
+"A complete pg_dump snapshot: schema and all data. Self-contained and the "
+"base for the other backup types."
+msgstr ""
+"Полный снимок базы через pg_dump: схема и все данные. Самодостаточна и "
+"служит основой для остальных типов."
+
+#: core/models.py:40
+msgid ""
+"Rows changed since the last backup of any type. The smallest backup, but a "
+"restore needs the whole chain."
+msgstr ""
+"Строки, изменённые с момента последней копии любого типа. Самая компактная, "
+"но для восстановления нужна вся цепочка."
+
+#: core/models.py:44
+msgid ""
+"Rows changed since the last full backup. A restore needs only the full "
+"backup and the latest differential one."
+msgstr ""
+"Строки, изменённые с момента последней полной копии. Для восстановления "
+"достаточно полной копии и последней дифференциальной."
+
+#: core/models.py:50
+msgid "code"
+msgstr "код"
+
+#: core/models.py:54
+msgid "Selects the backup algorithm"
+msgstr "Определяет алгоритм копирования"
+
+#: core/models.py:58 core/models.py:151
+msgid "backup type"
+msgstr "тип резервной копии"
+
+#: core/models.py:59
+msgid "backup types"
+msgstr "типы резервных копий"
+
+#: core/models.py:83
+msgid "title"
+msgstr "название"
+
+#: core/models.py:88 core/models.py:104
+msgid "storage type"
+msgstr "тип хранилища"
+
+#: core/models.py:89
+msgid "storage types"
+msgstr "типы хранилищ"
+
+#: core/models.py:98
+msgid "location"
+msgstr "местоположение"
+
+#: core/models.py:109 core/models.py:145
+msgid "storage"
+msgstr "хранилище"
+
+#: core/models.py:110
+msgid "storages"
+msgstr "хранилища"
+
+#: core/models.py:125
+msgid "database user"
+msgstr "пользователь БД"
+
+#: core/models.py:130
+msgid "database"
+msgstr "база данных"
+
+#: core/models.py:135
+msgid "host"
+msgstr "хост"
+
+#: core/models.py:140
+msgid "port"
+msgstr "порт"
+
+#: core/models.py:157
+msgid "owner"
+msgstr "владелец"
+
+#: core/models.py:162
+msgid "file size, bytes"
+msgstr "размер файла, байт"
+
+#: core/models.py:168
+msgid "created at"
+msgstr "создана"
+
+#: core/models.py:173
+msgid "backup"
+msgstr "резервная копия"
+
+#: core/models.py:174
+msgid "backups"
+msgstr "резервные копии"
+
+#: core/services.py:28
+msgid "An incremental backup needs a full backup of the same database first"
+msgstr "Для инкрементальной копии сначала нужна полная копия этой же базы"
+
+#: core/services.py:31
+msgid "A differential backup needs a full backup of the same database first"
+msgstr "Для дифференциальной копии сначала нужна полная копия этой же базы"
+
+#: core/services.py:70
+msgid "Could not connect to the database: check the address and credentials"
+msgstr ""
+"Не удалось подключиться к базе данных: проверьте адрес и учётные данные"
+
+#: core/services.py:95
+msgid "The backup failed, see the server log for details"
+msgstr "Не удалось снять резервную копию, подробности в журнале сервера"
+
+#: core/templates/404.html:3 core/templates/404.html:8
+msgid "Page not found"
+msgstr "Страница не найдена"
+
+#: core/templates/404.html:9
+msgid "The backup may have been deleted, or the link is out of date."
+msgstr "Возможно, копия уже удалена или ссылка устарела."
+
+#: core/templates/404.html:10
+msgid "Back to backups"
+msgstr "К списку копий"
+
+#: core/templates/backup_types.html:3 core/templates/backup_types.html:7
+#: core/templates/base.html:19
+msgid "Backup types"
+msgstr "Типы копий"
+
+#: core/templates/backup_types.html:8
+msgid "How the backup methods differ and when to use each one."
+msgstr "Чем отличаются способы копирования и когда какой выбирать."
+
+#: core/templates/base.html:8
+msgid ""
+"DataStudio backs up PostgreSQL databases: full, incremental and differential"
+" backups."
+msgstr ""
+"DataStudio — резервное копирование баз PostgreSQL: полные, инкрементальные и"
+" дифференциальные копии."
+
+#: core/templates/base.html:17
+msgid "Main navigation"
+msgstr "Основная навигация"
+
+#: core/templates/base.html:18
+#| msgid "Backups"
+msgctxt "navigation"
+msgid "Backups"
+msgstr "Копии"
+
+#: core/templates/base.html:20 core/templates/storages.html:3
+#: core/templates/storages.html:7
+msgid "Storages"
+msgstr "Хранилища"
+
+#: core/templates/base.html:24 custom_auth/templates/profile.html:3
+#: custom_auth/templates/profile.html:8
+msgid "Profile"
+msgstr "Профиль"
+
+#: core/templates/base.html:28
+msgid "Sign out"
+msgstr "Выйти"
+
+#: core/templates/create.html:3 core/templates/create.html:8
+#: core/templates/index.html:10
+msgid "New backup"
+msgstr "Новая копия"
+
+#: core/templates/create.html:9
+msgid ""
+"DataStudio connects to the database, checks access and takes the backup "
+"right away."
+msgstr "Приложение подключится к базе, проверит доступ и сразу снимет копию."
+
+#: core/templates/create.html:18
+msgid "Backup method"
+msgstr "Способ копирования"
+
+#: core/templates/create.html:31
+msgid "PostgreSQL connection"
+msgstr "Подключение к PostgreSQL"
+
+#: core/templates/create.html:46 core/templates/remove.html:27
+msgid "Cancel"
+msgstr "Отмена"
+
+#: core/templates/create.html:47
+msgid "Take backup"
+msgstr "Снять копию"
+
+#: core/templates/index.html:3 core/templates/index.html:7
+msgid "Backups"
+msgstr "Резервные копии"
+
+#: core/templates/index.html:8
+msgid "PostgreSQL backups taken by your account."
+msgstr "Копии баз PostgreSQL, снятые вашей учётной записью."
+
+#: core/templates/index.html:13
+msgid "Summary"
+msgstr "Сводка"
+
+#: core/templates/index.html:15
+msgid "Total backups"
+msgstr "Всего копий"
+
+#: core/templates/index.html:17
+#, python-format
+msgid "%(counter)s database"
+msgid_plural "%(counter)s databases"
+msgstr[0] "%(counter)s база данных"
+msgstr[1] "%(counter)s базы данных"
+msgstr[2] "%(counter)s баз данных"
+
+#: core/templates/index.html:20
+msgid "Disk usage"
+msgstr "Занято на диске"
+
+#: core/templates/index.html:22
+msgid "across all backup files"
+msgstr "суммарно по всем файлам"
+
+#: core/templates/index.html:25
+msgid "Latest backup"
+msgstr "Последняя копия"
+
+#: core/templates/index.html:27
+msgid "none yet"
+msgstr "ещё не создавалась"
+
+#: core/templates/index.html:38 core/templates/remove.html:17
+#: core/templates/storages.html:16
+msgid "Type"
+msgstr "Тип"
+
+#: core/templates/index.html:40 core/templates/remove.html:21
+msgid "Size"
+msgstr "Размер"
+
+#: core/templates/index.html:41 core/templates/remove.html:20
+msgid "Created"
+msgstr "Создана"
+
+#: core/templates/index.html:42
+msgid "Actions"
+msgstr "Действия"
+
+#: core/templates/index.html:61
+msgid "Download"
+msgstr "Скачать"
+
+#: core/templates/index.html:61
+#, python-format
+msgid "Download backup of %(db)s"
+msgstr "Скачать копию %(db)s"
+
+#: core/templates/index.html:62 core/templates/remove.html:28
+msgid "Delete"
+msgstr "Удалить"
+
+#: core/templates/index.html:62
+#, python-format
+msgid "Delete backup of %(db)s"
+msgstr "Удалить копию %(db)s"
+
+#: core/templates/index.html:73
+msgid "No backups yet"
+msgstr "Копий пока нет"
+
+#: core/templates/index.html:74
+msgid ""
+"Start with a full backup: incremental and differential backups are built on "
+"top of it."
+msgstr ""
+"Начните с полной копии: она нужна как основа для инкрементальных и "
+"дифференциальных."
+
+#: core/templates/index.html:75
+msgid "Create your first backup"
+msgstr "Создать первую копию"
+
+#: core/templates/remove.html:3
+msgid "Delete backup"
+msgstr "Удаление копии"
+
+#: core/templates/remove.html:8
+msgid "Delete this backup?"
+msgstr "Удалить резервную копию?"
+
+#: core/templates/remove.html:9
+msgid "The record and its file will be deleted permanently."
+msgstr "Запись и файл будут удалены безвозвратно."
+
+#: core/templates/remove.html:18
+msgid "Server"
+msgstr "Сервер"
+
+#: core/templates/remove.html:24
+msgid ""
+"This is a full backup: incremental and differential backups taken after it "
+"cannot be restored without it."
+msgstr ""
+"Это полная копия: инкрементальные и дифференциальные копии, снятые после "
+"неё, без неё восстановить не получится."
+
+#: core/templates/storages.html:8
+msgid "Where backup files are kept. The list is managed by an administrator."
+msgstr "Куда сохраняются файлы копий. Список ведёт администратор."
+
+#: core/templates/storages.html:16
+msgid "Location"
+msgstr "Местоположение"
+
+#: core/templates/storages.html:16
+msgid "Your backups"
+msgstr "Ваших копий"
+
+#: core/templates/storages.html:31
+msgid "No storages"
+msgstr "Хранилищ нет"
+
+#: core/templates/storages.html:32
+msgid "Add a storage in the admin panel."
+msgstr "Добавьте хранилище в панели администратора."
+
+#: core/views.py:33
+msgid "The backup file is missing on disk"
+msgstr "Файл резервной копии не найден на диске"
+
+#: core/views.py:55
+#, python-format
+msgid "Backup of “%(db)s” created"
+msgstr "Копия базы «%(db)s» создана"
+
+#: core/views.py:72
+msgid "Backup deleted"
+msgstr "Резервная копия удалена"
+
+#: custom_auth/forms.py:10
+msgid "Incorrect username or password"
+msgstr "Неверный логин или пароль"
+
+#: custom_auth/forms.py:11
+msgid "This account is disabled"
+msgstr "Учётная запись отключена"
+
+#: custom_auth/forms.py:25
+msgid "New password"
+msgstr "Новый пароль"
+
+#: custom_auth/forms.py:29
+msgid "Leave empty to keep the current password."
+msgstr "Оставьте пустым, чтобы не менять."
+
+#: custom_auth/forms.py:32
+msgid "Repeat password"
+msgstr "Повторите пароль"
+
+#: custom_auth/forms.py:48
+msgid "The passwords do not match"
+msgstr "Пароли не совпадают"
+
+#: custom_auth/templates/auth_base.html:8
+msgid "PostgreSQL backups without a console or scripts"
+msgstr "Резервные копии PostgreSQL без консоли и скриптов"
+
+#: custom_auth/templates/auth_base.html:9
+msgid ""
+"Connect a database, choose a backup method and get a file you can download "
+"and restore."
+msgstr ""
+"Подключите базу, выберите способ копирования — и получите файл, который "
+"можно скачать и восстановить."
+
+#: custom_auth/templates/auth_base.html:11
+msgid ""
+"Full backups with <code>pg_dump</code>, plus incremental and differential "
+"ones"
+msgstr ""
+"Полные копии через <code>pg_dump</code>, а также инкрементальные и "
+"дифференциальные"
+
+#: custom_auth/templates/auth_base.html:12
+msgid ""
+"Database passwords are never stored, and every user sees only their own "
+"backups"
+msgstr ""
+"Пароли от баз не сохраняются, каждый пользователь видит только свои копии"
+
+#: custom_auth/templates/auth_base.html:13
+msgid ""
+"The connection is checked before the backup starts, with clear error "
+"messages"
+msgstr "Проверка подключения до начала копирования и понятные ошибки"
+
+#: custom_auth/templates/login.html:3 custom_auth/templates/login.html:5
+msgid "Sign in"
+msgstr "Вход"
+
+#: custom_auth/templates/login.html:6
+msgid "Sign in to manage your backups."
+msgstr "Войдите, чтобы управлять резервными копиями."
+
+#: custom_auth/templates/login.html:8
+msgid "Demo access:"
+msgstr "Демо-доступ:"
+
+#: custom_auth/templates/login.html:16 custom_auth/templates/register.html:15
+msgctxt "action"
+msgid "Sign in"
+msgstr "Войти"
+
+#: custom_auth/templates/login.html:18
+msgid "No account yet?"
+msgstr "Нет аккаунта?"
+
+#: custom_auth/templates/login.html:18
+msgid "Create one"
+msgstr "Зарегистрироваться"
+
+#: custom_auth/templates/profile.html:9
+msgid "Your DataStudio username and password."
+msgstr "Логин и пароль для входа в DataStudio."
+
+#: custom_auth/templates/profile.html:18
+msgid "Change password"
+msgstr "Смена пароля"
+
+#: custom_auth/templates/profile.html:23
+msgid "Save"
+msgstr "Сохранить"
+
+#: custom_auth/templates/register.html:3 custom_auth/templates/register.html:5
+msgid "Create account"
+msgstr "Регистрация"
+
+#: custom_auth/templates/register.html:6
+msgid "It takes half a minute."
+msgstr "Это займёт полминуты."
+
+#: custom_auth/templates/register.html:13
+msgctxt "action"
+msgid "Create account"
+msgstr "Создать аккаунт"
+
+#: custom_auth/templates/register.html:15
+msgid "Already have an account?"
+msgstr "Уже есть аккаунт?"
+
+#: custom_auth/views.py:30
+msgid "Your account is ready, you can sign in now"
+msgstr "Регистрация прошла успешно, теперь можно войти"
+
+#: custom_auth/views.py:48
+msgid "Profile saved"
+msgstr "Данные профиля сохранены"

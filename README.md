@@ -11,9 +11,10 @@
 A web app for backing up PostgreSQL databases. It takes full backups with
 `pg_dump` and incremental and differential backups on top of them. You can
 download and delete backups, and each user sees only their own. The UI is in
-Russian.
+English by default and switches to Russian with the EN / RU toggle in the
+header.
 
-![Backups list](docs/screenshots/backups.png)
+![Backups list](docs/screenshots/en/backups.png)
 
 ## Quick start
 
@@ -93,6 +94,17 @@ COMMIT;
 - Logout is POST-only, registration validates password strength, and the
   post-login redirect is protected against open redirects.
 
+### Localization
+
+- The whole UI is translated with Django's gettext: English source strings,
+  with Russian in `locale/ru/`, including plural forms ("2 databases",
+  "5 баз данных").
+- English is the default for everyone. The browser's `Accept-Language` is
+  deliberately ignored; the EN / RU switcher stores the choice in a cookie.
+- Backup type names and descriptions come from translatable strings keyed by
+  a stable code, not from database rows, so they follow the chosen language.
+- CI checks that the compiled `.mo` catalog matches the `.po` source.
+
 ### Architecture
 
 ```mermaid
@@ -130,6 +142,7 @@ involved:
   layer;
 - rebuilding the UI: hand-written CSS instead of a Tailwind CDN build, with
   dark mode, a responsive layout, empty states and clear errors;
+- translating the interface: English by default, Russian on demand;
 - adding Docker, CI (lint, unit and integration tests, image build) and demo
   data.
 
@@ -137,15 +150,15 @@ involved:
 
 | New backup | Connection error |
 |---|---|
-| ![Create form](docs/screenshots/create.png) | ![Error](docs/screenshots/create-error.png) |
+| ![Create form](docs/screenshots/en/create.png) | ![Error](docs/screenshots/en/create-error.png) |
 
 | Dark mode | Mobile |
 |---|---|
-| ![Dark mode](docs/screenshots/backups-dark.png) | ![Mobile](docs/screenshots/backups-mobile.png) |
+| ![Dark mode](docs/screenshots/en/backups-dark.png) | ![Mobile](docs/screenshots/en/backups-mobile.png) |
 
 | Sign in | Backup types |
 |---|---|
-| ![Sign in](docs/screenshots/login.png) | ![Backup types](docs/screenshots/backup-types.png) |
+| ![Sign in](docs/screenshots/en/login.png) | ![Backup types](docs/screenshots/en/backup-types.png) |
 
 ## Running without Docker
 
@@ -193,7 +206,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-There are 90 tests with 98% coverage. CI starts PostgreSQL 16 and runs the
+There are 95 tests with 98% coverage. CI starts PostgreSQL 16 and runs the
 real `pg_dump` and `psql`.
 
 ## Limitations
@@ -216,6 +229,7 @@ These are known limits of the current implementation:
 ├── core/                # Backups: models, forms, services, views, templates, CSS
 ├── custom_auth/         # Login, registration, profile
 ├── datastudio/          # Settings and root URLconf
+├── locale/ru/           # Russian translation (gettext)
 ├── docker/              # Entrypoint and demo database seed
 ├── docs/screenshots/
 ├── Dockerfile

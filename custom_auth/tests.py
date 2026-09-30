@@ -34,7 +34,7 @@ class LoginViewTests(TestCase):
     def test_invalid_login_shows_error(self):
         response = self.client.post("/auth/login", {"username": "alice", "password": "wrong"})
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Неверный логин или пароль")
+        self.assertContains(response, "Incorrect username or password")
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_authenticated_user_is_redirected(self):
@@ -46,7 +46,7 @@ class LoginViewTests(TestCase):
         self.assertContains(self.client.get("/auth/login"), "demo-pass")
 
     def test_no_demo_hint_by_default(self):
-        self.assertNotContains(self.client.get("/auth/login"), "Демо-доступ")
+        self.assertNotContains(self.client.get("/auth/login"), "Demo access")
 
 
 class RegisterViewTests(TestCase):

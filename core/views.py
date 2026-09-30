@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q, Sum
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
 from core.forms import BackupForm
@@ -29,7 +30,7 @@ def download(request, id: int):
     backup = get_object_or_404(Backup, id=id, user=request.user)
 
     if not os.path.exists(backup.file_path):
-        messages.error(request, "Файл резервной копии не найден на диске")
+        messages.error(request, _("The backup file is missing on disk"))
         return redirect("core.index")
 
     return FileResponse(
@@ -51,7 +52,7 @@ def create(request):
         except BackupError as exc:
             form.add_error(None, str(exc))
         else:
-            messages.success(request, f"Копия базы «{backup.db}» создана")
+            messages.success(request, _("Backup of “%(db)s” created") % {"db": backup.db})
             return redirect("core.index")
 
     return render(request, "create.html", {"form": form})
@@ -68,7 +69,7 @@ def remove(request, id: int):
         return render(request, "remove.html", {"backup": backup})
 
     delete_backup(backup)
-    messages.success(request, "Резервная копия удалена")
+    messages.success(request, _("Backup deleted"))
     return redirect("core.index")
 
 

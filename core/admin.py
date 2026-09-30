@@ -5,8 +5,7 @@ from core.models import Backup, BackupType, Storage, StorageType
 
 @admin.register(BackupType)
 class BackupTypeAdmin(admin.ModelAdmin):
-    list_display = ("id", "code", "title")
-    search_fields = ("title",)
+    list_display = ("id", "code")
 
 
 @admin.register(StorageType)

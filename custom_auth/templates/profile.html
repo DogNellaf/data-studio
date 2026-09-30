@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Профиль{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Profile" %}{% endblock %}
 {% block page_class %} page--narrow{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Профиль</h1>
-    <p>Логин и пароль для входа в DataStudio.</p>
+    <h1>{% translate "Profile" %}</h1>
+    <p>{% translate "Your DataStudio username and password." %}</p>
   </div>
 </div>
 
@@ -14,12 +15,12 @@
   {% include "partials/form_errors.html" %}
   {% include "partials/field.html" with field=form.username %}
   <div class="form-section">
-    <div class="form-section__title">Смена пароля</div>
+    <div class="form-section__title">{% translate "Change password" %}</div>
     {% include "partials/field.html" with field=form.new_password1 %}
     {% include "partials/field.html" with field=form.new_password2 %}
   </div>
   <div class="form-actions">
-    <button class="btn btn--primary" type="submit">Сохранить</button>
+    <button class="btn btn--primary" type="submit">{% translate "Save" %}</button>
   </div>
 </form>
 {% endblock %}

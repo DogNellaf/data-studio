@@ -338,6 +338,26 @@ tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 55%, transpa
 .error-page__code { font-size: 64px; font-weight: 800; letter-spacing: -.04em; color: var(--accent); }
 .error-page p { margin: 8px 0 24px; color: var(--muted); }
 
-@media (max-width: 420px) {
-  .topbar .brand { display: none; }
+@media (max-width: 720px) {
+  /* Навигация уходит на вторую строку шапки: в одну строку с переключателем
+     языка и выходом она на телефоне не помещается. */
+  .topbar { flex-wrap: wrap; height: auto; padding: 10px 16px 6px; row-gap: 6px; }
+  .topbar .user { margin-left: auto; }
+  .topbar .nav { order: 3; flex-basis: 100%; margin: 0 -8px; }
 }
+
+/* ---- Переключатель языка ---------------------------------------------- */
+
+.lang-switch {
+  display: inline-flex; margin: 0; padding: 2px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface);
+}
+.lang-switch button {
+  height: 26px; padding: 0 8px; border: 0; border-radius: 6px;
+  background: none; color: var(--muted);
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.lang-switch button:hover { color: var(--text); }
+.lang-switch button[aria-current] { background: var(--accent-soft); color: var(--accent); }
+.auth__panel { position: relative; }
+.auth__lang { position: absolute; top: 20px; right: 24px; }

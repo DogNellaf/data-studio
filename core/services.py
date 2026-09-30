@@ -8,6 +8,7 @@ import logging
 import os
 
 from django.db import transaction
+from django.utils.translation import gettext as _
 
 from backuper.utils import (
     differential_db_backup,
@@ -18,6 +19,18 @@ from core.models import Backup, BackupType
 from core.utils import check_db_connection
 
 logger = logging.getLogger(__name__)
+
+
+# Отдельные фразы, а не одна с подстановкой типа: в русском переводе
+# название типа пришлось бы склонять.
+MISSING_BASE_MESSAGES = {
+    BackupType.INCREMENTAL: lambda: _(
+        "An incremental backup needs a full backup of the same database first"
+    ),
+    BackupType.DIFFERENTIAL: lambda: _(
+        "A differential backup needs a full backup of the same database first"
+    ),
+}
 
 
 class BackupError(Exception):
@@ -49,14 +62,12 @@ def create_backup(user, *, type, host, port, db, username, password, storage):
     if backup_type_is_delta(type):
         base = find_base_backup(user, type, db, host, port)
         if base is None:
-            raise BackupError(
-                f"Для копии «{type.title}» сначала нужна полная копия этой же базы"
-            )
+            raise BackupError(MISSING_BASE_MESSAGES[type.code]())
     else:
         base = None
 
     if not check_db_connection(host, port, username, password, db):
-        raise BackupError("Не удалось подключиться к базе данных: проверьте адрес и учётные данные")
+        raise BackupError(_("Could not connect to the database: check the address and credentials"))
 
     # Запись создаётся до дампа, чтобы получить id для имени файла; если дамп
     # не удался, транзакция откатывается и в списке не остаётся «пустышек».
@@ -81,7 +92,7 @@ def create_backup(user, *, type, host, port, db, username, password, storage):
         if not succeeded:
             transaction.set_rollback(True)
             _remove_file(backup.file_path)
-            raise BackupError("Не удалось снять резервную копию, подробности в журнале сервера")
+            raise BackupError(_("The backup failed, see the server log for details"))
 
         backup.size = _file_size(backup.file_path)
         backup.save(update_fields=["size"])

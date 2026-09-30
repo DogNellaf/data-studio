@@ -1,10 +1,11 @@
-{% load static %}<!doctype html>
-<html lang="ru">
+{% load static i18n %}<!doctype html>
+{% get_current_language as LANGUAGE_CODE %}
+<html lang="{{ LANGUAGE_CODE }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% endblock %} · DataStudio</title>
-  <meta name="description" content="DataStudio — резервное копирование баз PostgreSQL: полные, инкрементальные и дифференциальные копии.">
+  <meta name="description" content="{% translate 'DataStudio backs up PostgreSQL databases: full, incremental and differential backups.' %}">
   <link rel="icon" href="{% static 'core/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'core/app.css' %}">
 </head>
@@ -13,17 +14,18 @@
   {% with current=request.resolver_match.url_name %}
   <header class="topbar">
     <a class="brand" href="{% url 'core.index' %}">{% include "icons/logo.svg" %}<span>DataStudio</span></a>
-    <nav class="nav" aria-label="Основная навигация">
-      <a href="{% url 'core.index' %}"{% if current == 'core.index' or current == 'core.create' or current == 'core.remove' %} aria-current="page"{% endif %}>Копии</a>
-      <a href="{% url 'core.backup_types' %}"{% if current == 'core.backup_types' %} aria-current="page"{% endif %}>Типы копий</a>
-      <a href="{% url 'core.storages' %}"{% if current == 'core.storages' %} aria-current="page"{% endif %}>Хранилища</a>
+    <nav class="nav" aria-label="{% translate 'Main navigation' %}">
+      <a href="{% url 'core.index' %}"{% if current == 'core.index' or current == 'core.create' or current == 'core.remove' %} aria-current="page"{% endif %}>{% translate "Backups" context "navigation" %}</a>
+      <a href="{% url 'core.backup_types' %}"{% if current == 'core.backup_types' %} aria-current="page"{% endif %}>{% translate "Backup types" %}</a>
+      <a href="{% url 'core.storages' %}"{% if current == 'core.storages' %} aria-current="page"{% endif %}>{% translate "Storages" %}</a>
     </nav>
     <div class="user">
-      <a class="avatar" href="{% url 'custom_auth.profile' %}" title="Профиль">{{ request.user.username|slice:":2" }}</a>
+      {% include "partials/language_switcher.html" %}
+      <a class="avatar" href="{% url 'custom_auth.profile' %}" title="{% translate 'Profile' %}">{{ request.user.username|slice:":2" }}</a>
       <a class="username" href="{% url 'custom_auth.profile' %}">{{ request.user.username }}</a>
       <form method="post" action="{% url 'custom_auth.logout' %}">
         {% csrf_token %}
-        <button class="btn btn--link" type="submit">Выйти</button>
+        <button class="btn btn--link" type="submit">{% translate "Sign out" %}</button>
       </form>
     </div>
   </header>

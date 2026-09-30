@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, LogoutView
 from django.shortcuts import redirect, render
+from django.utils.translation import gettext as _
 from django.views.decorators.http import require_http_methods
 
 from custom_auth.forms import LoginForm, ProfileForm, RegisterForm
@@ -26,7 +27,7 @@ def register(request):
     form = RegisterForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         form.save()
-        messages.success(request, "Регистрация прошла успешно, теперь можно войти")
+        messages.success(request, _("Your account is ready, you can sign in now"))
         return redirect("custom_auth.login")
 
     return render(request, "register.html", {"form": form})
@@ -44,7 +45,7 @@ def profile(request):
         user = form.save()
         # Смена пароля меняет хэш сессии — без обновления пользователя разлогинит.
         update_session_auth_hash(request, user)
-        messages.success(request, "Данные профиля сохранены")
+        messages.success(request, _("Profile saved"))
         return redirect("custom_auth.profile")
 
     return render(request, "profile.html", {"form": form})

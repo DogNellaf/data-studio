@@ -218,7 +218,7 @@ def _export_changes_since(host, port, user, password, database, since, backup_na
 
         with connection.cursor() as cursor, open(backup_path, "w", encoding="utf-8") as backup_file:
             backup_file.write(
-                f"-- DataStudio: строки {database}, изменённые после {since}\n"
+                f"-- DataStudio: rows of {database} changed after {since}\n"
                 "BEGIN;\n"
             )
 

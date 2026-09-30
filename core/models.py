@@ -4,89 +4,110 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 
 class BackupType(models.Model):
-    '''Класс реализует тип резервных копий'''
+    """
+    Тип резервных копий.
+
+    Хранится только код: он выбирает алгоритм копирования, а название и
+    описания берутся из переводимых строк, поэтому интерфейс показывает их
+    на языке пользователя.
+    """
 
     FULL = "full"
     INCREMENTAL = "incremental"
     DIFFERENTIAL = "differential"
     CODE_CHOICES = [
-        (FULL, "Полная"),
-        (INCREMENTAL, "Инкрементальная"),
-        (DIFFERENTIAL, "Дифференциальная"),
+        (FULL, _("Full")),
+        (INCREMENTAL, _("Incremental")),
+        (DIFFERENTIAL, _("Differential")),
     ]
 
+    HINTS = {
+        FULL: _("The whole database, the base for the others"),
+        INCREMENTAL: _("Changes since the last backup of any type"),
+        DIFFERENTIAL: _("Changes since the last full backup"),
+    }
+
+    SUMMARIES = {
+        FULL: _(
+            "A complete pg_dump snapshot: schema and all data. Self-contained "
+            "and the base for the other backup types."
+        ),
+        INCREMENTAL: _(
+            "Rows changed since the last backup of any type. The smallest "
+            "backup, but a restore needs the whole chain."
+        ),
+        DIFFERENTIAL: _(
+            "Rows changed since the last full backup. A restore needs only the "
+            "full backup and the latest differential one."
+        ),
+    }
+
     code = models.CharField(
-        verbose_name="Код",
+        verbose_name=_("code"),
         max_length=20,
         choices=CODE_CHOICES,
         unique=True,
-        help_text="Определяет алгоритм копирования, от названия не зависит",
+        help_text=_("Selects the backup algorithm"),
     )
-
-    title = models.CharField(
-        verbose_name="Название",
-        max_length=100
-    )
-
-    description = models.TextField(
-        verbose_name="Описание",
-        blank=True
-    )
-
-    HINTS = {
-        FULL: "Вся база целиком, основа для остальных",
-        INCREMENTAL: "Изменения с последней копии любого типа",
-        DIFFERENTIAL: "Изменения с последней полной копии",
-    }
 
     class Meta:
-        verbose_name = "Тип резервной копии"
-        verbose_name_plural = "Типы резервных копий"
+        verbose_name = _("backup type")
+        verbose_name_plural = _("backup types")
         ordering = ["id"]
 
     def __str__(self):
-        return self.title
+        return str(self.label)
+
+    @property
+    def label(self):
+        return self.get_code_display()
 
     @property
     def hint(self):
         """Короткое пояснение для формы создания копии."""
         return self.HINTS.get(self.code, "")
 
+    @property
+    def summary(self):
+        """Подробное описание для справочника типов."""
+        return self.SUMMARIES.get(self.code, "")
+
 
 class StorageType(models.Model):
-    '''Класс реализует тип хранилища'''
+    """Тип хранилища."""
     title = models.CharField(
-        verbose_name="Название",
+        verbose_name=_("title"),
         max_length=100
     )
 
     class Meta:
-        verbose_name = "Тип хранилища"
-        verbose_name_plural = "Типы хранилищ"
+        verbose_name = _("storage type")
+        verbose_name_plural = _("storage types")
 
     def __str__(self):
         return self.title
 
 
 class Storage(models.Model):
-    '''Класс реализует хранилище резервных копий'''
+    """Хранилище резервных копий."""
     location = models.CharField(
-        verbose_name="Местоположение",
+        verbose_name=_("location"),
         max_length=255
     )
 
     type = models.ForeignKey(
         StorageType,
-        verbose_name="Тип хранилища",
+        verbose_name=_("storage type"),
         on_delete=models.CASCADE
     )
 
     class Meta:
-        verbose_name = "Хранилище"
-        verbose_name_plural = "Хранилища"
+        verbose_name = _("storage")
+        verbose_name_plural = _("storages")
 
     def __str__(self):
         return f"{self.location} - {self.type.title}"
@@ -101,60 +122,60 @@ class Backup(models.Model):
     утечку базы приложения в утечку всех подключённых баз.
     '''
     username = models.CharField(
-        verbose_name="Имя пользователя для подключения",
+        verbose_name=_("database user"),
         max_length=255
     )
 
     db = models.CharField(
-        verbose_name="База данных",
+        verbose_name=_("database"),
         max_length=255
     )
 
     host = models.CharField(
-        verbose_name="Хост для подключения",
+        verbose_name=_("host"),
         max_length=255
     )
 
     port = models.PositiveIntegerField(
-        verbose_name="Порт для подключения",
+        verbose_name=_("port"),
     )
 
     storage = models.ForeignKey(
         Storage,
-        verbose_name="Хранилище",
+        verbose_name=_("storage"),
         on_delete=models.CASCADE
     )
 
     type = models.ForeignKey(
         BackupType,
-        verbose_name="Тип резервной копии",
+        verbose_name=_("backup type"),
         on_delete=models.CASCADE
     )
 
     user = models.ForeignKey(
         User,
-        verbose_name="Автор",
+        verbose_name=_("owner"),
         on_delete=models.CASCADE
     )
 
     size = models.PositiveBigIntegerField(
-        verbose_name="Размер файла, байт",
+        verbose_name=_("file size, bytes"),
         null=True,
         blank=True
     )
 
     created_at = models.DateTimeField(
-        verbose_name="Дата и время создания",
+        verbose_name=_("created at"),
         default=timezone.now
     )
 
     class Meta:
-        verbose_name = "Резервная копия"
-        verbose_name_plural = "Резервные копии"
+        verbose_name = _("backup")
+        verbose_name_plural = _("backups")
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.type.title} — {self.db}@{self.host} ({self.created_at:%Y-%m-%d %H:%M})"
+        return f"{self.type.label} — {self.db}@{self.host} ({self.created_at:%Y-%m-%d %H:%M})"
 
     @property
     def file_name(self):

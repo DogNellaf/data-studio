@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Новая копия{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "New backup" %}{% endblock %}
 {% block page_class %} page--narrow{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Новая резервная копия</h1>
-    <p>Приложение подключится к базе, проверит доступ и сразу снимет копию.</p>
+    <h1>{% translate "New backup" %}</h1>
+    <p>{% translate "DataStudio connects to the database, checks access and takes the backup right away." %}</p>
   </div>
 </div>
 
@@ -14,7 +15,7 @@
   {% include "partials/form_errors.html" %}
 
   <fieldset class="form-section" style="border:0;margin:0;padding:0">
-    <legend class="form-section__title" style="margin-bottom:12px">Способ копирования</legend>
+    <legend class="form-section__title" style="margin-bottom:12px">{% translate "Backup method" %}</legend>
     <div class="choice-grid">
       {% for choice in form.type %}
       <label class="choice">
@@ -27,7 +28,7 @@
   </fieldset>
 
   <div class="form-section">
-    <div class="form-section__title">Подключение к PostgreSQL</div>
+    <div class="form-section__title">{% translate "PostgreSQL connection" %}</div>
     <div class="form-row form-row--host">
       {% include "partials/field.html" with field=form.host %}
       {% include "partials/field.html" with field=form.port %}
@@ -42,8 +43,8 @@
   <div class="form-section">
     {% include "partials/field.html" with field=form.storage %}
     <div class="form-actions">
-      <a class="btn btn--ghost" href="{% url 'core.index' %}">Отмена</a>
-      <button class="btn btn--primary" type="submit">Снять копию</button>
+      <a class="btn btn--ghost" href="{% url 'core.index' %}">{% translate "Cancel" %}</a>
+      <button class="btn btn--primary" type="submit">{% translate "Take backup" %}</button>
     </div>
   </div>
 </form>

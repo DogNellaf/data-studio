@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Страница не найдена{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Page not found" %}{% endblock %}
 {% block body %}
 <main class="error-page">
   <div>
     <div class="error-page__code">404</div>
-    <h1>Страница не найдена</h1>
-    <p>Возможно, копия уже удалена или ссылка устарела.</p>
-    <a class="btn btn--primary" href="/">На главную</a>
+    <h1>{% translate "Page not found" %}</h1>
+    <p>{% translate "The backup may have been deleted, or the link is out of date." %}</p>
+    <a class="btn btn--primary" href="/">{% translate "Back to backups" %}</a>
   </div>
 </main>
 {% endblock %}

@@ -10,9 +10,10 @@
 
 Веб-приложение для резервного копирования баз PostgreSQL: полные копии через
 `pg_dump`, инкрементальные и дифференциальные копии, скачивание и удаление, у
-каждого пользователя свой набор копий.
+каждого пользователя свой набор копий. Интерфейс по умолчанию на английском,
+переключатель EN / RU в шапке включает русский.
 
-![Список резервных копий](docs/screenshots/backups.png)
+![Список резервных копий](docs/screenshots/ru/backups.png)
 
 ## Быстрый старт
 
@@ -97,6 +98,17 @@ COMMIT;
 - Выход только через POST, есть проверка сложности пароля при регистрации и
   защита от открытого редиректа после входа.
 
+### Локализация
+
+- Весь интерфейс переведён через gettext Django: исходные строки на
+  английском, русский перевод в `locale/ru/`, включая формы множественного
+  числа («2 базы данных», «5 баз данных»).
+- По умолчанию у всех английский. `Accept-Language` браузера намеренно не
+  учитывается; выбор в переключателе EN / RU сохраняется в cookie.
+- Названия и описания типов копий берутся из переводимых строк по
+  стабильному коду, а не из записей в базе, поэтому следуют выбранному языку.
+- CI проверяет, что скомпилированный каталог `.mo` соответствует `.po`.
+
 ### Архитектура
 
 ```mermaid
@@ -133,6 +145,7 @@ flowchart LR
   сервисный слой;
 - переписать интерфейс: вместо Tailwind из CDN теперь собственный CSS с тёмной
   темой и адаптивной вёрсткой, пустыми состояниями и понятными ошибками;
+- перевести интерфейс: английский по умолчанию, русский по выбору;
 - добавить Docker, CI (линтер, юнит- и интеграционные тесты, сборка образа) и
   демо-данные.
 
@@ -140,15 +153,15 @@ flowchart LR
 
 | Создание копии | Ошибка подключения |
 |---|---|
-| ![Форма создания](docs/screenshots/create.png) | ![Ошибка](docs/screenshots/create-error.png) |
+| ![Форма создания](docs/screenshots/ru/create.png) | ![Ошибка](docs/screenshots/ru/create-error.png) |
 
 | Тёмная тема | Мобильная версия |
 |---|---|
-| ![Тёмная тема](docs/screenshots/backups-dark.png) | ![Мобильная версия](docs/screenshots/backups-mobile.png) |
+| ![Тёмная тема](docs/screenshots/ru/backups-dark.png) | ![Мобильная версия](docs/screenshots/ru/backups-mobile.png) |
 
 | Вход | Типы копий |
 |---|---|
-| ![Вход](docs/screenshots/login.png) | ![Типы копий](docs/screenshots/backup-types.png) |
+| ![Вход](docs/screenshots/ru/login.png) | ![Типы копий](docs/screenshots/ru/backup-types.png) |
 
 ## Запуск без Docker
 
@@ -196,7 +209,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-90 тестов, покрытие 98%. В CI поднимается PostgreSQL 16 и выполняются
+95 тестов, покрытие 98%. В CI поднимается PostgreSQL 16 и выполняются
 реальные `pg_dump`/`psql`.
 
 ## Ограничения
@@ -220,6 +233,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
 ├── core/                # Копии: модели, формы, сервисы, представления, шаблоны, CSS
 ├── custom_auth/         # Вход, регистрация, профиль
 ├── datastudio/          # Настройки и корневые URL
+├── locale/ru/           # Русский перевод (gettext)
 ├── docker/              # entrypoint и SQL демо-базы
 ├── docs/screenshots/
 ├── Dockerfile

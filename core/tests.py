@@ -61,11 +61,12 @@ class ReferenceDataTests(TestCase):
         codes = set(BackupType.objects.values_list("code", flat=True))
         self.assertEqual(codes, {"full", "incremental", "differential"})
 
-    def test_backup_types_have_descriptions_and_hints(self):
+    def test_backup_types_have_labels_hints_and_summaries(self):
         for backup_type in BackupType.objects.all():
             with self.subTest(code=backup_type.code):
-                self.assertTrue(backup_type.description)
+                self.assertTrue(backup_type.label)
                 self.assertTrue(backup_type.hint)
+                self.assertTrue(backup_type.summary)
 
     def test_default_storage_seeded(self):
         self.assertTrue(Storage.objects.exists())
@@ -84,7 +85,7 @@ class ModelTests(TestCase):
 
     def test_backup_str(self):
         backup = make_backup(self.user, make_storage(), self.full, db="shop")
-        self.assertIn("Полная", str(backup))
+        self.assertIn("Full", str(backup))
         self.assertIn("shop", str(backup))
 
     def test_password_is_not_stored(self):
@@ -190,19 +191,19 @@ class CreateBackupTests(ServiceTestBase):
 
     def test_failed_dump_leaves_no_record_or_file(self, _conn):
         with patch("core.services.full_db_backup", return_value=False):
-            with self.assertRaisesMessage(BackupError, "Не удалось снять"):
+            with self.assertRaisesMessage(BackupError, "The backup failed"):
                 create_backup(self.user, **self.params())
         self.assertFalse(Backup.objects.exists())
         self.assertEqual(os.listdir(self.media_dir), [])
 
     def test_connection_failure(self, conn):
         conn.return_value = False
-        with self.assertRaisesMessage(BackupError, "Не удалось подключиться"):
+        with self.assertRaisesMessage(BackupError, "Could not connect"):
             create_backup(self.user, **self.params())
         self.assertFalse(Backup.objects.exists())
 
     def test_incremental_requires_base(self, _conn):
-        with self.assertRaisesMessage(BackupError, "сначала нужна полная копия"):
+        with self.assertRaisesMessage(BackupError, "An incremental backup needs a full backup"):
             create_backup(self.user, **self.params(type=self.incr))
 
     def test_incremental_passes_base_timestamp(self, _conn):
@@ -214,7 +215,7 @@ class CreateBackupTests(ServiceTestBase):
 
     def test_differential_requires_full(self, _conn):
         make_backup(self.user, self.storage, self.incr, db="shop")
-        with self.assertRaisesMessage(BackupError, "сначала нужна полная копия"):
+        with self.assertRaisesMessage(BackupError, "A differential backup needs a full backup"):
             create_backup(self.user, **self.params(type=self.diff))
 
     def test_differential_passes_full_timestamp(self, _conn):
@@ -251,7 +252,7 @@ class IndexViewTests(ViewTestBase):
 
     def test_empty_state(self):
         self.login()
-        self.assertContains(self.client.get("/"), "Копий пока нет")
+        self.assertContains(self.client.get("/"), "No backups yet")
 
 
 class ReferenceViewTests(ViewTestBase):
@@ -310,8 +311,8 @@ class CreateViewTests(ViewTestBase):
         self.login()
         response = self.client.post("/create", self.payload(type=99999, storage=99999))
         errors = response.context["form"].errors
-        self.assertEqual(errors["type"], ["Указанный тип копирования не существует"])
-        self.assertEqual(errors["storage"], ["Указанное хранилище не существует"])
+        self.assertEqual(errors["type"], ["This backup type does not exist"])
+        self.assertEqual(errors["storage"], ["This storage does not exist"])
 
     def test_port_range(self):
         self.login()
@@ -337,7 +338,7 @@ class CreateViewTests(ViewTestBase):
         self.login()
         response = self.client.post("/create", self.payload(), follow=True)
         self.assertRedirects(response, "/")
-        self.assertContains(response, "Копия базы «shop» создана")
+        self.assertContains(response, "Backup of “shop” created")
         kwargs = create.call_args.kwargs
         self.assertEqual(kwargs["host"], "db.internal")
         self.assertEqual(kwargs["port"], 5432)
@@ -425,3 +426,54 @@ class SeedDemoCommandTests(TestCase):
     def test_noop_without_username(self):
         call_command("seed_demo", stdout=StringIO())
         self.assertFalse(User.objects.exists())
+
+
+# --------------------------------------------------------------------------- #
+#  Язык интерфейса
+# --------------------------------------------------------------------------- #
+class LanguageTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user("owner", password="secret123")
+        self.client.force_login(self.user)
+
+    def test_english_by_default_even_for_russian_browser(self):
+        response = self.client.get("/", HTTP_ACCEPT_LANGUAGE="ru-RU,ru;q=0.9")
+        self.assertContains(response, "No backups yet")
+        self.assertContains(response, '<html lang="en">')
+        self.assertEqual(response["Content-Language"], "en")
+
+    def test_switch_to_russian_and_back(self):
+        response = self.client.post("/i18n/setlang/", {"language": "ru", "next": "/backup_types"})
+        self.assertRedirects(response, "/backup_types", fetch_redirect_response=False)
+
+        page = self.client.get("/backup_types")
+        self.assertContains(page, '<html lang="ru">')
+        self.assertContains(page, "Дифференциальная")
+        self.assertContains(page, "Для восстановления достаточно полной копии")
+
+        self.client.post("/i18n/setlang/", {"language": "en", "next": "/"})
+        self.assertContains(self.client.get("/"), "No backups yet")
+
+    def test_unknown_language_cookie_falls_back_to_english(self):
+        self.client.cookies["django_language"] = "de"
+        self.assertContains(self.client.get("/"), '<html lang="en">')
+
+    def test_russian_plural_forms(self):
+        self.client.cookies["django_language"] = "ru"
+        storage = make_storage()
+        full = BackupType.objects.get(code=BackupType.FULL)
+        for db in ("a", "b", "c", "d", "e"):
+            make_backup(self.user, storage, full, db=db)
+        self.assertContains(self.client.get("/"), "5 баз данных")
+
+    def test_service_errors_are_translated(self):
+        from django.utils import translation
+
+        storage = make_storage()
+        incr = BackupType.objects.get(code=BackupType.INCREMENTAL)
+        with translation.override("ru"):
+            with self.assertRaisesMessage(BackupError, "Для инкрементальной копии"):
+                create_backup(
+                    self.user, type=incr, host="h", port=5432, db="shop",
+                    username="u", password="p", storage=storage,
+                )

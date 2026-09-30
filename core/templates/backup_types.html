@@ -1,19 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Типы копий{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Backup types" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Типы резервных копий</h1>
-    <p>Чем отличаются способы копирования и когда какой выбирать.</p>
+    <h1>{% translate "Backup types" %}</h1>
+    <p>{% translate "How the backup methods differ and when to use each one." %}</p>
   </div>
 </div>
 
 <div class="type-list">
   {% for type in types %}
   <article class="card type-card">
-    <span class="badge badge--{{ type.code }}">{{ type.get_code_display }}</span>
-    <h2>{{ type.title }}</h2>
-    <p>{{ type.description|default:"Описание не задано." }}</p>
+    <span class="badge badge--{{ type.code }}">{{ type.code }}</span>
+    <h2>{{ type.label }}</h2>
+    <p>{{ type.summary }}</p>
   </article>
   {% endfor %}
 </div>

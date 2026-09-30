@@ -1,10 +1,11 @@
 {% extends "auth_base.html" %}
-{% block title %}Вход{% endblock %}
+{% load i18n %}
+{% block title %}{% translate "Sign in" %}{% endblock %}
 {% block auth_content %}
-<h2>Вход</h2>
-<p>Войдите, чтобы управлять резервными копиями.</p>
+<h2>{% translate "Sign in" %}</h2>
+<p>{% translate "Sign in to manage your backups." %}</p>
 {% if demo_username %}
-<div class="demo">Демо-доступ: <code>{{ demo_username }}</code> / <code>{{ demo_password }}</code></div>
+<div class="demo">{% translate "Demo access:" %} <code>{{ demo_username }}</code> / <code>{{ demo_password }}</code></div>
 {% endif %}
 <form class="form" method="post" novalidate>
   {% csrf_token %}
@@ -12,7 +13,7 @@
   {% include "partials/field.html" with field=form.username %}
   {% include "partials/field.html" with field=form.password %}
   <input type="hidden" name="next" value="{{ next }}">
-  <button class="btn btn--primary btn--block" type="submit">Войти</button>
+  <button class="btn btn--primary btn--block" type="submit">{% translate "Sign in" context "action" %}</button>
 </form>
-<div class="auth__switch">Нет аккаунта? <a href="{% url 'custom_auth.register' %}">Зарегистрироваться</a></div>
+<div class="auth__switch">{% translate "No account yet?" %} <a href="{% url 'custom_auth.register' %}">{% translate "Create one" %}</a></div>
 {% endblock %}

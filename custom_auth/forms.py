@@ -2,12 +2,13 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.utils.translation import gettext_lazy as _
 
 
 class LoginForm(AuthenticationForm):
     error_messages = {
-        "invalid_login": "Неверный логин или пароль",
-        "inactive": "Учётная запись отключена",
+        "invalid_login": _("Incorrect username or password"),
+        "inactive": _("This account is disabled"),
     }
 
 
@@ -21,14 +22,14 @@ class ProfileForm(forms.ModelForm):
     """Смена логина и, по желанию, пароля. Пустой пароль — оставить прежний."""
 
     new_password1 = forms.CharField(
-        label="Новый пароль",
+        label=_("New password"),
         required=False,
         strip=False,
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
-        help_text="Оставьте пустым, чтобы не менять.",
+        help_text=_("Leave empty to keep the current password."),
     )
     new_password2 = forms.CharField(
-        label="Повторите пароль",
+        label=_("Repeat password"),
         required=False,
         strip=False,
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
@@ -44,7 +45,7 @@ class ProfileForm(forms.ModelForm):
         password2 = cleaned_data.get("new_password2")
         if password1 or password2:
             if password1 != password2:
-                self.add_error("new_password2", "Пароли не совпадают")
+                self.add_error("new_password2", _("The passwords do not match"))
             else:
                 try:
                     validate_password(password1, self.instance)
