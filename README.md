@@ -23,10 +23,10 @@ docker compose up --build
 ```
 
 Open <http://localhost:8000> and sign in as **demo / demo12345**. The compose
-stack runs the app, the backup worker, a demo shop database and MinIO as S3
-storage. In the "new backup" form enter host `demo-db`, port `5432`, database
-`shop`, user and password `shop`, and pick local disk or MinIO. Files in MinIO
-are visible in its console at <http://localhost:9001> (minio / minio-secret).
+stack runs the app, the backup worker, a demo shop database and SeaweedFS as
+S3 storage. In the "new backup" form enter host `demo-db`, port `5432`,
+database `shop`, user and password `shop`, and pick local disk or S3. Files in
+S3 are visible in the SeaweedFS file browser at <http://localhost:8888/buckets/>.
 
 To see deltas in action, change some data, then take an incremental backup:
 
@@ -261,7 +261,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
 There are 131 tests with 97% coverage; S3 is tested against moto. CI also
 starts PostgreSQL 16 for the integration tests and, after building the image,
 brings up the whole compose stack and takes full and incremental backups
-through the worker into both local disk and MinIO, including a schema change
+through the worker into both local disk and S3 (SeaweedFS), including a schema change
 that turns a delta into a full backup
 ([`docker/smoke_test.py`](docker/smoke_test.py)).
 

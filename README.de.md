@@ -26,11 +26,11 @@ docker compose up --build
 
 Öffnen Sie <http://localhost:8000> und melden Sie sich mit **demo / demo12345**
 an. Der Compose-Stack startet die Anwendung, den Sicherungs-Worker, eine
-Demo-Datenbank eines Onlineshops und MinIO als S3-Speicher. Geben Sie im
+Demo-Datenbank eines Onlineshops und SeaweedFS als S3-Speicher. Geben Sie im
 Formular „Neue Sicherung“ den Host `demo-db`, Port `5432`, die Datenbank
 `shop` sowie Benutzer und Passwort `shop` ein und wählen Sie die lokale
-Festplatte oder MinIO. Die Dateien in MinIO sind in dessen Konsole unter
-<http://localhost:9001> zu sehen (minio / minio-secret).
+Festplatte oder S3. Die Dateien in S3 sind im Dateibrowser von SeaweedFS unter
+<http://localhost:8888/buckets/> zu sehen.
 
 Um Delta-Sicherungen in Aktion zu sehen, ändern Sie Daten und erstellen dann
 eine inkrementelle Sicherung:
@@ -276,7 +276,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
 131 Tests, 97 % Abdeckung; S3 wird gegen moto getestet. Die CI startet
 PostgreSQL 16 für die Integrationstests und fährt nach dem Image-Build den
 gesamten Compose-Stack hoch, um über den Worker Voll- und inkrementelle
-Sicherungen sowohl auf die lokale Festplatte als auch nach MinIO zu erstellen,
+Sicherungen sowohl auf die lokale Festplatte als auch nach S3 (SeaweedFS) zu erstellen,
 einschließlich einer Schemaänderung, nach der statt eines Deltas eine
 Vollsicherung entsteht ([`docker/smoke_test.py`](docker/smoke_test.py)).
 

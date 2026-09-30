@@ -25,11 +25,11 @@ docker compose up --build
 
 Ouvrez <http://localhost:8000> et connectez-vous avec **demo / demo12345**. La
 stack compose lance l’application, le worker de sauvegarde, une base de
-démonstration d’une boutique et MinIO comme stockage S3. Dans le formulaire
-« Nouvelle sauvegarde », indiquez l’hôte `demo-db`, le port `5432`, la base
-`shop`, l’utilisateur et le mot de passe `shop`, puis choisissez le disque local
-ou MinIO. Les fichiers stockés dans MinIO sont visibles dans sa console
-<http://localhost:9001> (minio / minio-secret).
+démonstration d’une boutique et SeaweedFS comme stockage S3. Dans le
+formulaire « Nouvelle sauvegarde », indiquez l’hôte `demo-db`, le port `5432`,
+la base `shop`, l’utilisateur et le mot de passe `shop`, puis choisissez le
+disque local ou S3. Les fichiers stockés dans S3 sont visibles dans le
+navigateur de fichiers de SeaweedFS <http://localhost:8888/buckets/>.
 
 Pour voir les deltas à l’œuvre, modifiez des données puis lancez une
 sauvegarde incrémentale :
@@ -277,7 +277,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
 131 tests, couverture de 97 % ; S3 est testé avec moto. La CI démarre
 PostgreSQL 16 pour les tests d’intégration puis, après le build de l’image,
 lance toute la stack compose et réalise des sauvegardes complètes et
-incrémentales via le worker, sur disque local comme dans MinIO, y compris un
+incrémentales via le worker, sur disque local comme dans S3 (SeaweedFS), y compris un
 changement de schéma qui transforme un delta en sauvegarde complète
 ([`docker/smoke_test.py`](docker/smoke_test.py)).
 

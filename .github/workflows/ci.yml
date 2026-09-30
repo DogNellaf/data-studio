@@ -75,7 +75,7 @@ jobs:
           docker compose up -d --build --wait --wait-timeout 180
           curl -fsS -o /dev/null http://localhost:8000/auth/login
           docker compose exec -T app pg_dump --version
-      - name: End-to-end backups through the worker, local disk and MinIO
+      - name: End-to-end backups through the worker, local disk and S3
         run: docker compose exec -T app python manage.py shell < docker/smoke_test.py
       - name: Logs on failure
         if: failure()
