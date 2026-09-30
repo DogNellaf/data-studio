@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 20:52+0000\n"
+"POT-Creation-Date: 2026-09-30 21:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,9 +16,10 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2);\n"
 
-#: core/backends.py:15
+#: core/backends.py:15 core/models.py:84
 msgid "Local disk"
 msgstr "Локальный диск"
 
@@ -69,6 +70,65 @@ msgstr "Хранилище"
 #: core/forms.py:50
 msgid "This storage does not exist"
 msgstr "Такого хранилища не существует"
+
+#: core/locale_overrides.py:15
+#, python-format
+msgid "%(delta)s ago"
+msgstr "%(delta)s назад"
+
+#: core/locale_overrides.py:16
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d year"
+msgid_plural "%(num)d years"
+msgstr[0] "%(num)d год"
+msgstr[1] "%(num)d года"
+msgstr[2] "%(num)d лет"
+
+#: core/locale_overrides.py:17
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d month"
+msgid_plural "%(num)d months"
+msgstr[0] "%(num)d месяц"
+msgstr[1] "%(num)d месяца"
+msgstr[2] "%(num)d месяцев"
+
+#: core/locale_overrides.py:18
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d week"
+msgid_plural "%(num)d weeks"
+msgstr[0] "%(num)d неделю"
+msgstr[1] "%(num)d недели"
+msgstr[2] "%(num)d недель"
+
+#: core/locale_overrides.py:19
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d day"
+msgid_plural "%(num)d days"
+msgstr[0] "%(num)d день"
+msgstr[1] "%(num)d дня"
+msgstr[2] "%(num)d дней"
+
+#: core/locale_overrides.py:20
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] "%(num)d час"
+msgstr[1] "%(num)d часа"
+msgstr[2] "%(num)d часов"
+
+#: core/locale_overrides.py:21
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] "%(num)d минуту"
+msgstr[1] "%(num)d минуты"
+msgstr[2] "%(num)d минут"
 
 #: core/models.py:22
 msgid "Full"
@@ -126,7 +186,7 @@ msgstr "код"
 msgid "Selects the backup algorithm"
 msgstr "Определяет алгоритм копирования"
 
-#: core/models.py:57 core/models.py:180
+#: core/models.py:57 core/models.py:201
 msgid "backup type"
 msgstr "тип резервной копии"
 
@@ -134,104 +194,108 @@ msgstr "тип резервной копии"
 msgid "backup types"
 msgstr "типы резервных копий"
 
-#: core/models.py:82
+#: core/models.py:83
+msgid "BACKUP_DIR on the server"
+msgstr "Каталог BACKUP_DIR на сервере"
+
+#: core/models.py:95
 msgid "title"
 msgstr "название"
 
-#: core/models.py:87 core/models.py:103
+#: core/models.py:100 core/models.py:120
 msgid "storage type"
 msgstr "тип хранилища"
 
-#: core/models.py:88
+#: core/models.py:101
 msgid "storage types"
 msgstr "типы хранилищ"
 
-#: core/models.py:97
+#: core/models.py:114
 msgid "location"
 msgstr "местоположение"
 
-#: core/models.py:108
+#: core/models.py:125
 msgid "backend"
 msgstr "бэкенд"
 
-#: core/models.py:112
+#: core/models.py:129
 msgid "Where files are written; S3 needs the BACKUP_S3_* settings"
 msgstr "Куда записываются файлы; для S3 нужны настройки BACKUP_S3_*"
 
-#: core/models.py:116 core/models.py:174
+#: core/models.py:133 core/models.py:195
 msgid "storage"
 msgstr "хранилище"
 
-#: core/models.py:117
+#: core/models.py:134
 msgid "storages"
 msgstr "хранилища"
 
-#: core/models.py:146
+#: core/models.py:167
 msgid "Queued"
 msgstr "В очереди"
 
-#: core/models.py:147
+#: core/models.py:168
 msgid "Running"
 msgstr "Выполняется"
 
-#: core/models.py:148
+#: core/models.py:169
 msgid "Ready"
 msgstr "Готова"
 
-#: core/models.py:149
+#: core/models.py:170
 msgid "Failed"
 msgstr "Ошибка"
 
-#: core/models.py:154
+#: core/models.py:175
 msgid "database user"
 msgstr "пользователь БД"
 
-#: core/models.py:159
+#: core/models.py:180
 msgid "database"
 msgstr "база данных"
 
-#: core/models.py:164
+#: core/models.py:185
 msgid "host"
 msgstr "хост"
 
-#: core/models.py:169
+#: core/models.py:190
 msgid "port"
 msgstr "порт"
 
-#: core/models.py:186
+#: core/models.py:207
 msgid "owner"
 msgstr "владелец"
 
-#: core/models.py:192
+#: core/models.py:213
 msgid "base backup"
 msgstr "базовая копия"
 
-#: core/models.py:197
+#: core/models.py:218
 msgid "The backup whose state this delta was compared with"
 msgstr "Копия, с состоянием которой сравнивалась эта дельта"
 
-#: core/models.py:201
+#: core/models.py:222
 msgid "status"
 msgstr "статус"
 
-#: core/models.py:209
+#: core/models.py:230
 msgid "error"
 msgstr "ошибка"
 
-#: core/models.py:215
+#: core/models.py:236
 msgid "error details"
 msgstr "подробности ошибки"
 
-#: core/models.py:217
+#: core/models.py:238
 msgid "Technical details for administrators; not shown to users"
 msgstr ""
 "Технические подробности для администраторов; пользователям не показываются"
 
-#: core/models.py:221
+#: core/models.py:242
 msgid "taken as full because"
 msgstr "снята полной, потому что"
 
-#: core/models.py:224
+#: core/models.py:245
 msgid ""
 "Set when a requested delta could not be taken and a full backup was taken "
 "instead"
@@ -239,43 +303,43 @@ msgstr ""
 "Заполняется, если запрошенную дельту снять было нельзя и вместо неё снята "
 "полная копия"
 
-#: core/models.py:228
+#: core/models.py:249
 msgid "encrypted password"
 msgstr "зашифрованный пароль"
 
-#: core/models.py:234
+#: core/models.py:255
 msgid "backup file"
 msgstr "файл копии"
 
-#: core/models.py:240
+#: core/models.py:261
 msgid "state file"
 msgstr "файл состояния"
 
-#: core/models.py:243
+#: core/models.py:264
 msgid "Row hashes that later deltas are compared with"
 msgstr "Хэши строк, с которыми сравниваются следующие дельты"
 
-#: core/models.py:247
+#: core/models.py:268
 msgid "file size, bytes"
 msgstr "размер файла, байт"
 
-#: core/models.py:253
+#: core/models.py:274
 msgid "created at"
 msgstr "создана"
 
-#: core/models.py:258
+#: core/models.py:279
 msgid "started at"
 msgstr "начата"
 
-#: core/models.py:264
+#: core/models.py:285
 msgid "finished at"
 msgstr "завершена"
 
-#: core/models.py:270
+#: core/models.py:291
 msgid "backup"
 msgstr "резервная копия"
 
-#: core/models.py:271
+#: core/models.py:292
 msgid "backups"
 msgstr "резервные копии"
 
@@ -339,11 +403,11 @@ msgstr "Чем отличаются способы копирования и к�
 
 #: core/templates/base.html:8
 msgid ""
-"DataStudio backs up PostgreSQL databases: full, incremental and differential"
-" backups."
+"DataStudio backs up PostgreSQL databases: full, incremental and differential "
+"backups."
 msgstr ""
-"DataStudio — резервное копирование баз PostgreSQL: полные, инкрементальные и"
-" дифференциальные копии."
+"DataStudio — резервное копирование баз PostgreSQL: полные, инкрементальные и "
+"дифференциальные копии."
 
 #: core/templates/base.html:18
 msgid "Main navigation"
@@ -505,20 +569,17 @@ msgstr "Сервер"
 #: core/templates/remove.html:24
 #, python-format
 msgid ""
-"%(counter)s later backup was taken on top of this one and cannot be restored"
-" without it."
+"%(counter)s later backup was taken on top of this one and cannot be restored "
+"without it."
 msgid_plural ""
 "%(counter)s later backups were taken on top of this one and cannot be "
 "restored without it."
 msgstr[0] ""
-"%(counter)s более поздняя копия снята поверх этой и без неё не "
-"восстановится."
+"%(counter)s более поздняя копия снята поверх этой и без неё не восстановится."
 msgstr[1] ""
-"%(counter)s более поздние копии сняты поверх этой и без неё не "
-"восстановятся."
+"%(counter)s более поздние копии сняты поверх этой и без неё не восстановятся."
 msgstr[2] ""
-"%(counter)s более поздних копий сняты поверх этой и без неё не "
-"восстановятся."
+"%(counter)s более поздних копий сняты поверх этой и без неё не восстановятся."
 
 #: core/templates/storages.html:8
 msgid "Where backup files are kept. The list is managed by an administrator."
@@ -628,8 +689,7 @@ msgstr ""
 
 #: custom_auth/templates/auth_base.html:13
 msgid ""
-"The connection is checked before the backup starts, with clear error "
-"messages"
+"The connection is checked before the backup starts, with clear error messages"
 msgstr "Проверка подключения до начала копирования и понятные ошибки"
 
 #: custom_auth/templates/login.html:3 custom_auth/templates/login.html:5

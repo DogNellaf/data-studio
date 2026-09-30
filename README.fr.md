@@ -92,8 +92,8 @@ COMMIT;
   exactement les lignes modifiées, doublons compris.
 - **Mémoire constante.** Les fichiers d’état sont des flux triés, qu’un delta
   fusionne avec une lecture triée de la table, comme une jointure par fusion.
-  Une seule série de clés est gardée en mémoire, quelle que soit la taille de
-  la table ; les suppressions attendent dans un fichier temporaire.
+  Un seul lot de clés est gardé en mémoire, quelle que soit la taille de la
+  table ; les suppressions en attente sont écrites dans un fichier temporaire.
 - **Un seul instantané cohérent.** La sauvegarde complète transmet
   l’instantané de sa transaction à `pg_dump --snapshot` : le dump et le
   fichier d’état décrivent le même instant, même si la base est modifiée
@@ -114,12 +114,12 @@ COMMIT;
 - **Des tâches en arrière-plan sans infrastructure supplémentaire.** La file
   est une table de la base de l’application ; `backup_worker` prend les tâches
   avec `SELECT … FOR UPDATE SKIP LOCKED`, plusieurs workers peuvent donc
-  tourner en parallèle. Les tâches d’un worker tombé sont marquées comme
-  interrompues, et un worker qu’on arrête termine d’abord son dump en cours.
+  tourner en parallèle. Les tâches d’un worker arrêté brutalement sont marquées
+  comme interrompues, et un worker qu’on arrête termine d’abord son dump en cours.
 - **Stockage interchangeable.** Les fichiers passent par l’API de stockage de
   Django : disque local ou tout service compatible S3 (AWS S3, MinIO…). Une
-  chaîne de sauvegardes ne sort jamais d’un même stockage, chacun se restaure
-  donc seul.
+  chaîne de sauvegardes ne sort jamais d’un même stockage : chacun peut donc
+  être restauré indépendamment.
 
 ### Sécurité
 
@@ -130,7 +130,7 @@ COMMIT;
 - La connexion est vérifiée avant la mise en file : un mauvais mot de passe
   s’affiche dans le formulaire plutôt que sous forme de tâche échouée.
 - Chacun ne peut voir, télécharger et supprimer que ses propres sauvegardes ;
-  tout le reste renvoie une 404. Les sauvegardes de base des deltas sont, elles
+  tout le reste renvoie une erreur 404. Les sauvegardes de base des deltas sont, elles
   aussi, cherchées uniquement parmi celles de l’utilisateur.
 - Tous les secrets viennent de l’environnement. En production, l’application
   refuse de démarrer sans `DJANGO_SECRET_KEY`, et `check --deploy` passe sans
@@ -176,7 +176,7 @@ flowchart LR
 
 ### Ce que la refonte a changé
 
-Le projet est né comme un prototype d’études. Le rendre opérationnel a
+Le projet est né d’un prototype universitaire. Le rendre opérationnel a
 demandé de :
 
 - refaire les deltas : ils ignoraient les lignes supprimées, les tables sans
@@ -228,7 +228,7 @@ cp .env.example .env            # renseignez DATABASE_URL
 python manage.py migrate        # crée les types de sauvegarde et un stockage par défaut
 python manage.py createsuperuser
 python manage.py runserver      # l’application web
-python manage.py backup_worker  # dans un second terminal : réalise les sauvegardes en file
+python manage.py backup_worker  # dans un second terminal : traite la file des sauvegardes
 ```
 
 Pour un essai rapide sans worker, définissez `BACKUP_RUN_INLINE=True` : les
@@ -277,8 +277,8 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
 131 tests, couverture de 97 % ; S3 est testé avec moto. La CI démarre
 PostgreSQL 16 pour les tests d’intégration puis, après le build de l’image,
 lance toute la stack compose et réalise des sauvegardes complètes et
-incrémentales via le worker, sur disque local comme dans S3 (SeaweedFS), y compris un
-changement de schéma qui transforme un delta en sauvegarde complète
+incrémentales via le worker, sur disque local comme dans S3 (SeaweedFS), y
+compris un changement de schéma qui transforme un delta en sauvegarde complète
 ([`docker/smoke_test.py`](docker/smoke_test.py)).
 
 ## Structure du projet

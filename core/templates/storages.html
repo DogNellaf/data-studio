@@ -17,8 +17,8 @@
       <tbody>
       {% for storage in storages %}
         <tr>
-          <td class="cell-main">{{ storage.location }}</td>
-          <td class="cell-sub">{{ storage.type.title }}</td>
+          <td class="cell-main">{{ storage.display_location }}</td>
+          <td class="cell-sub">{{ storage.type.display_title }}</td>
           <td class="cell-sub">
             {{ storage.get_backend_display }}
             {% if not storage.is_available %}<span class="status status--failed">{% translate "not configured" %}</span>{% endif %}

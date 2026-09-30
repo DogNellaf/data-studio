@@ -51,7 +51,7 @@
             <div class="cell-sub mono">{{ backup.username }}@{{ backup.host }}:{{ backup.port }}</div>
           </td>
           <td><span class="badge badge--{{ backup.type.code }}">{{ backup.type.label }}</span></td>
-          <td class="hide-sm cell-sub">{{ backup.storage.location }}</td>
+          <td class="hide-sm cell-sub">{{ backup.storage.display_location }}</td>
           <td class="num hide-sm">{% if backup.is_ready %}{{ backup.size|filesizeformat|default:"—" }}{% else %}—{% endif %}</td>
           <td>
             {% if backup.status == "succeeded" %}

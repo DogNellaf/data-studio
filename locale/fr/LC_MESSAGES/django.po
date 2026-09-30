@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 20:52+0000\n"
+"POT-Creation-Date: 2026-09-30 21:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: core/backends.py:15
+#: core/backends.py:15 core/models.py:84
 msgid "Local disk"
 msgstr "Disque local"
 
@@ -70,6 +70,59 @@ msgstr "Stockage"
 msgid "This storage does not exist"
 msgstr "Ce stockage n’existe pas"
 
+#: core/locale_overrides.py:15
+#, python-format
+msgid "%(delta)s ago"
+msgstr "il y a %(delta)s"
+
+#: core/locale_overrides.py:16
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d year"
+msgid_plural "%(num)d years"
+msgstr[0] "%(num)d année"
+msgstr[1] "%(num)d années"
+
+#: core/locale_overrides.py:17
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d month"
+msgid_plural "%(num)d months"
+msgstr[0] "%(num)d mois"
+msgstr[1] "%(num)d mois"
+
+#: core/locale_overrides.py:18
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d week"
+msgid_plural "%(num)d weeks"
+msgstr[0] "%(num)d semaine"
+msgstr[1] "%(num)d semaines"
+
+#: core/locale_overrides.py:19
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d day"
+msgid_plural "%(num)d days"
+msgstr[0] "%(num)d jour"
+msgstr[1] "%(num)d jours"
+
+#: core/locale_overrides.py:20
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] "%(num)d heure"
+msgstr[1] "%(num)d heures"
+
+#: core/locale_overrides.py:21
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] "%(num)d minute"
+msgstr[1] "%(num)d minutes"
+
 #: core/models.py:22
 msgid "Full"
 msgstr "Complète"
@@ -99,7 +152,7 @@ msgid ""
 "A complete pg_dump snapshot: schema and all data. Self-contained and the "
 "base for the other backup types."
 msgstr ""
-"Un instantané pg_dump complet : schéma et toutes les données. Autonome, il "
+"Un instantané pg_dump complet : schéma et toutes les données. Autonome, il "
 "sert de base aux autres types de sauvegarde."
 
 #: core/models.py:39
@@ -126,7 +179,7 @@ msgstr "code"
 msgid "Selects the backup algorithm"
 msgstr "Détermine l’algorithme de sauvegarde"
 
-#: core/models.py:57 core/models.py:180
+#: core/models.py:57 core/models.py:201
 msgid "backup type"
 msgstr "type de sauvegarde"
 
@@ -134,104 +187,108 @@ msgstr "type de sauvegarde"
 msgid "backup types"
 msgstr "types de sauvegarde"
 
-#: core/models.py:82
+#: core/models.py:83
+msgid "BACKUP_DIR on the server"
+msgstr "Répertoire BACKUP_DIR du serveur"
+
+#: core/models.py:95
 msgid "title"
 msgstr "nom"
 
-#: core/models.py:87 core/models.py:103
+#: core/models.py:100 core/models.py:120
 msgid "storage type"
 msgstr "type de stockage"
 
-#: core/models.py:88
+#: core/models.py:101
 msgid "storage types"
 msgstr "types de stockage"
 
-#: core/models.py:97
+#: core/models.py:114
 msgid "location"
 msgstr "emplacement"
 
-#: core/models.py:108
+#: core/models.py:125
 msgid "backend"
 msgstr "backend"
 
-#: core/models.py:112
+#: core/models.py:129
 msgid "Where files are written; S3 needs the BACKUP_S3_* settings"
-msgstr "Où les fichiers sont écrits ; S3 nécessite les réglages BACKUP_S3_*"
+msgstr "Où les fichiers sont écrits ; S3 nécessite les réglages BACKUP_S3_*"
 
-#: core/models.py:116 core/models.py:174
+#: core/models.py:133 core/models.py:195
 msgid "storage"
 msgstr "stockage"
 
-#: core/models.py:117
+#: core/models.py:134
 msgid "storages"
 msgstr "stockages"
 
-#: core/models.py:146
+#: core/models.py:167
 msgid "Queued"
 msgstr "En attente"
 
-#: core/models.py:147
+#: core/models.py:168
 msgid "Running"
 msgstr "En cours"
 
-#: core/models.py:148
+#: core/models.py:169
 msgid "Ready"
 msgstr "Prête"
 
-#: core/models.py:149
+#: core/models.py:170
 msgid "Failed"
 msgstr "Échec"
 
-#: core/models.py:154
+#: core/models.py:175
 msgid "database user"
 msgstr "utilisateur de la base"
 
-#: core/models.py:159
+#: core/models.py:180
 msgid "database"
 msgstr "base de données"
 
-#: core/models.py:164
+#: core/models.py:185
 msgid "host"
 msgstr "hôte"
 
-#: core/models.py:169
+#: core/models.py:190
 msgid "port"
 msgstr "port"
 
-#: core/models.py:186
+#: core/models.py:207
 msgid "owner"
 msgstr "propriétaire"
 
-#: core/models.py:192
+#: core/models.py:213
 msgid "base backup"
 msgstr "sauvegarde de base"
 
-#: core/models.py:197
+#: core/models.py:218
 msgid "The backup whose state this delta was compared with"
 msgstr "La sauvegarde dont l’état a servi de référence à ce delta"
 
-#: core/models.py:201
+#: core/models.py:222
 msgid "status"
 msgstr "statut"
 
-#: core/models.py:209
+#: core/models.py:230
 msgid "error"
 msgstr "erreur"
 
-#: core/models.py:215
+#: core/models.py:236
 msgid "error details"
 msgstr "détails de l’erreur"
 
-#: core/models.py:217
+#: core/models.py:238
 msgid "Technical details for administrators; not shown to users"
 msgstr ""
-"Détails techniques pour les administrateurs ; non affichés aux utilisateurs"
+"Détails techniques pour les administrateurs ; non affichés aux utilisateurs"
 
-#: core/models.py:221
+#: core/models.py:242
 msgid "taken as full because"
-msgstr "réalisée en complète car"
+msgstr "motif de la sauvegarde complète"
 
-#: core/models.py:224
+#: core/models.py:245
 msgid ""
 "Set when a requested delta could not be taken and a full backup was taken "
 "instead"
@@ -239,54 +296,55 @@ msgstr ""
 "Renseigné quand le delta demandé était impossible et qu’une sauvegarde "
 "complète a été réalisée à la place"
 
-#: core/models.py:228
+#: core/models.py:249
 msgid "encrypted password"
 msgstr "mot de passe chiffré"
 
-#: core/models.py:234
+#: core/models.py:255
 msgid "backup file"
 msgstr "fichier de sauvegarde"
 
-#: core/models.py:240
+#: core/models.py:261
 msgid "state file"
 msgstr "fichier d’état"
 
-#: core/models.py:243
+#: core/models.py:264
 msgid "Row hashes that later deltas are compared with"
 msgstr "Empreintes des lignes auxquelles les deltas suivants sont comparés"
 
-#: core/models.py:247
+#: core/models.py:268
 msgid "file size, bytes"
 msgstr "taille du fichier, octets"
 
-#: core/models.py:253
+#: core/models.py:274
 msgid "created at"
 msgstr "créée le"
 
-#: core/models.py:258
+#: core/models.py:279
 msgid "started at"
 msgstr "démarrée le"
 
-#: core/models.py:264
+#: core/models.py:285
 msgid "finished at"
 msgstr "terminée le"
 
-#: core/models.py:270
+#: core/models.py:291
 msgid "backup"
 msgstr "sauvegarde"
 
-#: core/models.py:271
+#: core/models.py:292
 msgid "backups"
 msgstr "sauvegardes"
 
 #: core/services.py:36
 msgid "Could not connect to the database: check the address and credentials"
 msgstr ""
-"Connexion à la base impossible : vérifiez l’adresse et les identifiants"
+"Connexion à la base impossible : vérifiez l’adresse et les identifiants"
 
 #: core/services.py:38 core/services.py:41
 msgid "The backup failed, see the server log for details"
-msgstr "La sauvegarde a échoué, voir le journal du serveur pour les détails"
+msgstr ""
+"La sauvegarde a échoué ; les détails se trouvent dans le journal du serveur"
 
 #: core/services.py:39
 msgid "The storage is not available"
@@ -298,17 +356,17 @@ msgstr "La sauvegarde a été interrompue, veuillez réessayer"
 
 #: core/services.py:47
 msgid "Taken as a full backup: the base backup is gone"
-msgstr "Réalisée en complète : la sauvegarde de base n’existe plus"
+msgstr "Réalisée en sauvegarde complète : la sauvegarde de base n’existe plus"
 
 #: core/services.py:48
 msgid "Taken as a full backup: the base backup predates change tracking"
 msgstr ""
-"Réalisée en complète : la sauvegarde de base précède le suivi des "
+"Réalisée en sauvegarde complète : la sauvegarde de base précède le suivi des "
 "changements"
 
 #: core/services.py:49
 msgid "Taken as a full backup: the database schema changed"
-msgstr "Réalisée en complète : le schéma de la base a changé"
+msgstr "Réalisée en sauvegarde complète : le schéma de la base a changé"
 
 #: core/services.py:56
 msgid "An incremental backup needs a full backup of the same database first"
@@ -342,14 +400,14 @@ msgstr "Types de sauvegarde"
 #: core/templates/backup_types.html:8
 msgid "How the backup methods differ and when to use each one."
 msgstr ""
-"Ce qui distingue les méthodes de sauvegarde et quand utiliser chacune."
+"Ce qui distingue les méthodes de sauvegarde, et quand utiliser chacune."
 
 #: core/templates/base.html:8
 msgid ""
-"DataStudio backs up PostgreSQL databases: full, incremental and differential"
-" backups."
+"DataStudio backs up PostgreSQL databases: full, incremental and differential "
+"backups."
 msgstr ""
-"DataStudio sauvegarde les bases PostgreSQL : sauvegardes complètes, "
+"DataStudio sauvegarde les bases PostgreSQL : sauvegardes complètes, "
 "incrémentales et différentielles."
 
 #: core/templates/base.html:18
@@ -385,8 +443,8 @@ msgid ""
 "DataStudio connects to the database, checks access and takes the backup "
 "right away."
 msgstr ""
-"DataStudio se connecte à la base, vérifie l’accès et lance la sauvegarde "
-"aussitôt."
+"DataStudio se connecte à la base, vérifie l’accès et lance aussitôt la "
+"sauvegarde."
 
 #: core/templates/create.html:18
 msgid "Backup method"
@@ -418,7 +476,7 @@ msgstr "Résumé"
 
 #: core/templates/index.html:16
 msgid "Total backups"
-msgstr "Sauvegardes"
+msgstr "Total des sauvegardes"
 
 #: core/templates/index.html:18
 #, python-format
@@ -487,7 +545,7 @@ msgid ""
 "Start with a full backup: incremental and differential backups are built on "
 "top of it."
 msgstr ""
-"Commencez par une sauvegarde complète : les sauvegardes incrémentales et "
+"Commencez par une sauvegarde complète : les sauvegardes incrémentales et "
 "différentielles s’appuient dessus."
 
 #: core/templates/index.html:86
@@ -500,7 +558,7 @@ msgstr "Supprimer la sauvegarde"
 
 #: core/templates/remove.html:8
 msgid "Delete this backup?"
-msgstr "Supprimer cette sauvegarde ?"
+msgstr "Supprimer cette sauvegarde ?"
 
 #: core/templates/remove.html:9
 msgid "The record and its file will be deleted permanently."
@@ -513,8 +571,8 @@ msgstr "Serveur"
 #: core/templates/remove.html:24
 #, python-format
 msgid ""
-"%(counter)s later backup was taken on top of this one and cannot be restored"
-" without it."
+"%(counter)s later backup was taken on top of this one and cannot be restored "
+"without it."
 msgid_plural ""
 "%(counter)s later backups were taken on top of this one and cannot be "
 "restored without it."
@@ -566,18 +624,18 @@ msgstr "Le fichier de sauvegarde est introuvable dans le stockage"
 #: core/views.py:81
 #, python-format
 msgid "Backup of “%(db)s” created"
-msgstr "Sauvegarde de « %(db)s » créée"
+msgstr "Sauvegarde de « %(db)s » créée"
 
 #: core/views.py:87
 #, python-format
 msgid "Backup of “%(db)s” queued: it will appear below when ready"
 msgstr ""
-"Sauvegarde de « %(db)s » mise en file d’attente : elle apparaîtra ci-dessous"
-" une fois prête"
+"Sauvegarde de « %(db)s » mise en file d’attente : elle apparaîtra ci-dessous "
+"une fois prête"
 
 #: core/views.py:102
 msgid "This backup is being taken right now; delete it when it finishes"
-msgstr "Cette sauvegarde est en cours ; supprimez-la une fois terminée"
+msgstr "Cette sauvegarde est en cours ; supprimez-la une fois terminée"
 
 #: core/views.py:110
 msgid "Backup deleted"
@@ -624,7 +682,7 @@ msgid ""
 "Full backups with <code>pg_dump</code>, plus incremental and differential "
 "ones"
 msgstr ""
-"Sauvegardes complètes avec <code>pg_dump</code>, plus incrémentales et "
+"Sauvegardes complètes avec <code>pg_dump</code>, ainsi qu’incrémentales et "
 "différentielles"
 
 #: custom_auth/templates/auth_base.html:12
@@ -637,8 +695,7 @@ msgstr ""
 
 #: custom_auth/templates/auth_base.html:13
 msgid ""
-"The connection is checked before the backup starts, with clear error "
-"messages"
+"The connection is checked before the backup starts, with clear error messages"
 msgstr ""
 "La connexion est vérifiée avant la sauvegarde, avec des messages d’erreur "
 "clairs"
@@ -653,7 +710,7 @@ msgstr "Connectez-vous pour gérer vos sauvegardes."
 
 #: custom_auth/templates/login.html:8
 msgid "Demo access:"
-msgstr "Accès démo :"
+msgstr "Accès démo :"
 
 #: custom_auth/templates/login.html:16 custom_auth/templates/register.html:15
 msgctxt "action"
@@ -662,7 +719,7 @@ msgstr "Se connecter"
 
 #: custom_auth/templates/login.html:18
 msgid "No account yet?"
-msgstr "Pas encore de compte ?"
+msgstr "Pas encore de compte ?"
 
 #: custom_auth/templates/login.html:18
 msgid "Create one"
@@ -695,7 +752,7 @@ msgstr "Créer le compte"
 
 #: custom_auth/templates/register.html:15
 msgid "Already have an account?"
-msgstr "Vous avez déjà un compte ?"
+msgstr "Vous avez déjà un compte ?"
 
 #: custom_auth/views.py:30
 msgid "Your account is ready, you can sign in now"

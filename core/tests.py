@@ -823,6 +823,29 @@ class LanguageTests(TestCase):
             make_backup(self.user, storage, full, db=db)
         self.assertContains(self.client.get("/"), "5 баз данных")
 
+    def test_german_relative_time_is_grammatical(self):
+        """Регрессия: встроенный перевод Django давал «1 Tage, 1 Stunde her»."""
+        full = BackupType.objects.get(code=BackupType.FULL)
+        ago = timezone.now() - timedelta(days=1, hours=1, minutes=5)
+        make_backup(self.user, make_storage(), full, created_at=ago)
+        make_backup(self.user, make_storage(), full, created_at=ago - timedelta(days=1))
+        self.client.cookies["django_language"] = "de"
+        page = self.client.get("/").content.decode().replace("\xa0", " ")
+        self.assertIn("vor 1 Tag, 1 Stunde", page)
+        self.assertIn("vor 2 Tagen, 1 Stunde", page)
+        self.assertNotIn(" her<", page)
+
+    def test_builtin_storage_names_are_translated(self):
+        """Хранилище из миграции переводится, заданное администратором — нет."""
+        full = BackupType.objects.get(code=BackupType.FULL)
+        make_backup(self.user, make_storage("BACKUP_DIR on the server"), full)
+        make_backup(self.user, make_storage("s3://bucket/backups"), full)
+        self.client.cookies["django_language"] = "fr"
+        page = self.client.get("/").content.decode()
+        self.assertIn("Répertoire BACKUP_DIR du serveur", page)
+        self.assertNotIn("on the server", page)
+        self.assertIn("s3://bucket/backups", page)
+
     def test_service_errors_are_translated(self):
         from django.utils import translation
 

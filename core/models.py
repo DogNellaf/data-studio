@@ -76,6 +76,19 @@ class BackupType(models.Model):
         return self.SUMMARIES.get(self.code, "")
 
 
+# Названия, которые миграции создают сами. В базе они лежат по-английски,
+# а интерфейс показывает их на языке пользователя; названия, заданные
+# администратором, выводятся как есть.
+BUILTIN_NAMES = {
+    "BACKUP_DIR on the server": _("BACKUP_DIR on the server"),
+    "Local disk": _("Local disk"),
+}
+
+
+def display_name(value):
+    return BUILTIN_NAMES.get(value, value)
+
+
 class StorageType(models.Model):
     """Тип хранилища."""
     title = models.CharField(
@@ -88,7 +101,11 @@ class StorageType(models.Model):
         verbose_name_plural = _("storage types")
 
     def __str__(self):
-        return self.title
+        return str(self.display_title)
+
+    @property
+    def display_title(self):
+        return display_name(self.title)
 
 
 class Storage(models.Model):
@@ -117,7 +134,11 @@ class Storage(models.Model):
         verbose_name_plural = _("storages")
 
     def __str__(self):
-        return f"{self.location} - {self.type.title}"
+        return f"{self.display_location} - {self.type.display_title}"
+
+    @property
+    def display_location(self):
+        return display_name(self.location)
 
     @property
     def is_available(self):

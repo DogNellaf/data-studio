@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-30 20:52+0000\n"
+"POT-Creation-Date: 2026-09-30 21:28+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: core/backends.py:15
+#: core/backends.py:15 core/models.py:84
 msgid "Local disk"
 msgstr "Lokale Festplatte"
 
@@ -69,6 +69,59 @@ msgstr "Speicherort"
 #: core/forms.py:50
 msgid "This storage does not exist"
 msgstr "Diesen Speicherort gibt es nicht"
+
+#: core/locale_overrides.py:15
+#, python-format
+msgid "%(delta)s ago"
+msgstr "vor %(delta)s"
+
+#: core/locale_overrides.py:16
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d year"
+msgid_plural "%(num)d years"
+msgstr[0] "%(num)d Jahr"
+msgstr[1] "%(num)d Jahren"
+
+#: core/locale_overrides.py:17
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d month"
+msgid_plural "%(num)d months"
+msgstr[0] "%(num)d Monat"
+msgstr[1] "%(num)d Monaten"
+
+#: core/locale_overrides.py:18
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d week"
+msgid_plural "%(num)d weeks"
+msgstr[0] "%(num)d Woche"
+msgstr[1] "%(num)d Wochen"
+
+#: core/locale_overrides.py:19
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d day"
+msgid_plural "%(num)d days"
+msgstr[0] "%(num)d Tag"
+msgstr[1] "%(num)d Tagen"
+
+#: core/locale_overrides.py:20
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] "%(num)d Stunde"
+msgstr[1] "%(num)d Stunden"
+
+#: core/locale_overrides.py:21
+#, python-format
+msgctxt "naturaltime-past"
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] "%(num)d Minute"
+msgstr[1] "%(num)d Minuten"
 
 #: core/models.py:22
 msgid "Full"
@@ -127,7 +180,7 @@ msgstr "Code"
 msgid "Selects the backup algorithm"
 msgstr "Bestimmt den Sicherungsalgorithmus"
 
-#: core/models.py:57 core/models.py:180
+#: core/models.py:57 core/models.py:201
 msgid "backup type"
 msgstr "Sicherungstyp"
 
@@ -135,105 +188,109 @@ msgstr "Sicherungstyp"
 msgid "backup types"
 msgstr "Sicherungstypen"
 
-#: core/models.py:82
+#: core/models.py:83
+msgid "BACKUP_DIR on the server"
+msgstr "Verzeichnis BACKUP_DIR auf dem Server"
+
+#: core/models.py:95
 msgid "title"
 msgstr "Name"
 
-#: core/models.py:87 core/models.py:103
+#: core/models.py:100 core/models.py:120
 msgid "storage type"
 msgstr "Speichertyp"
 
-#: core/models.py:88
+#: core/models.py:101
 msgid "storage types"
 msgstr "Speichertypen"
 
-#: core/models.py:97
+#: core/models.py:114
 msgid "location"
 msgstr "Ort"
 
-#: core/models.py:108
+#: core/models.py:125
 msgid "backend"
 msgstr "Backend"
 
-#: core/models.py:112
+#: core/models.py:129
 msgid "Where files are written; S3 needs the BACKUP_S3_* settings"
 msgstr ""
 "Wohin die Dateien geschrieben werden; S3 braucht die Einstellungen "
 "BACKUP_S3_*"
 
-#: core/models.py:116 core/models.py:174
+#: core/models.py:133 core/models.py:195
 msgid "storage"
 msgstr "Speicherort"
 
-#: core/models.py:117
+#: core/models.py:134
 msgid "storages"
 msgstr "Speicherorte"
 
-#: core/models.py:146
+#: core/models.py:167
 msgid "Queued"
-msgstr "In Warteschlange"
+msgstr "Wartet"
 
-#: core/models.py:147
+#: core/models.py:168
 msgid "Running"
 msgstr "Läuft"
 
-#: core/models.py:148
+#: core/models.py:169
 msgid "Ready"
 msgstr "Fertig"
 
-#: core/models.py:149
+#: core/models.py:170
 msgid "Failed"
 msgstr "Fehlgeschlagen"
 
-#: core/models.py:154
+#: core/models.py:175
 msgid "database user"
 msgstr "Datenbankbenutzer"
 
-#: core/models.py:159
+#: core/models.py:180
 msgid "database"
 msgstr "Datenbank"
 
-#: core/models.py:164
+#: core/models.py:185
 msgid "host"
 msgstr "Host"
 
-#: core/models.py:169
+#: core/models.py:190
 msgid "port"
 msgstr "Port"
 
-#: core/models.py:186
+#: core/models.py:207
 msgid "owner"
 msgstr "Eigentümer"
 
-#: core/models.py:192
+#: core/models.py:213
 msgid "base backup"
 msgstr "Basissicherung"
 
-#: core/models.py:197
+#: core/models.py:218
 msgid "The backup whose state this delta was compared with"
 msgstr "Die Sicherung, mit deren Stand dieses Delta verglichen wurde"
 
-#: core/models.py:201
+#: core/models.py:222
 msgid "status"
 msgstr "Status"
 
-#: core/models.py:209
+#: core/models.py:230
 msgid "error"
 msgstr "Fehler"
 
-#: core/models.py:215
+#: core/models.py:236
 msgid "error details"
 msgstr "Fehlerdetails"
 
-#: core/models.py:217
+#: core/models.py:238
 msgid "Technical details for administrators; not shown to users"
 msgstr "Technische Details für Administratoren; Benutzern nicht angezeigt"
 
-#: core/models.py:221
+#: core/models.py:242
 msgid "taken as full because"
-msgstr "als Vollsicherung, weil"
+msgstr "Grund für Vollsicherung"
 
-#: core/models.py:224
+#: core/models.py:245
 msgid ""
 "Set when a requested delta could not be taken and a full backup was taken "
 "instead"
@@ -241,53 +298,53 @@ msgstr ""
 "Gesetzt, wenn das angeforderte Delta nicht möglich war und stattdessen eine "
 "Vollsicherung erstellt wurde"
 
-#: core/models.py:228
+#: core/models.py:249
 msgid "encrypted password"
 msgstr "verschlüsseltes Passwort"
 
-#: core/models.py:234
+#: core/models.py:255
 msgid "backup file"
 msgstr "Sicherungsdatei"
 
-#: core/models.py:240
+#: core/models.py:261
 msgid "state file"
 msgstr "Zustandsdatei"
 
-#: core/models.py:243
+#: core/models.py:264
 msgid "Row hashes that later deltas are compared with"
 msgstr "Zeilen-Hashes, mit denen spätere Deltas verglichen werden"
 
-#: core/models.py:247
+#: core/models.py:268
 msgid "file size, bytes"
 msgstr "Dateigröße, Bytes"
 
-#: core/models.py:253
+#: core/models.py:274
 msgid "created at"
 msgstr "erstellt am"
 
-#: core/models.py:258
+#: core/models.py:279
 msgid "started at"
 msgstr "gestartet am"
 
-#: core/models.py:264
+#: core/models.py:285
 msgid "finished at"
 msgstr "beendet am"
 
-#: core/models.py:270
+#: core/models.py:291
 msgid "backup"
 msgstr "Sicherung"
 
-#: core/models.py:271
+#: core/models.py:292
 msgid "backups"
 msgstr "Sicherungen"
 
 #: core/services.py:36
 msgid "Could not connect to the database: check the address and credentials"
-msgstr "Keine Verbindung zur Datenbank: Adresse und Zugangsdaten prüfen"
+msgstr "Keine Verbindung zur Datenbank: Bitte Adresse und Zugangsdaten prüfen"
 
 #: core/services.py:38 core/services.py:41
 msgid "The backup failed, see the server log for details"
-msgstr "Die Sicherung ist fehlgeschlagen, Details im Serverprotokoll"
+msgstr "Die Sicherung ist fehlgeschlagen; Details stehen im Serverprotokoll"
 
 #: core/services.py:39
 msgid "The storage is not available"
@@ -305,7 +362,7 @@ msgstr ""
 #: core/services.py:48
 msgid "Taken as a full backup: the base backup predates change tracking"
 msgstr ""
-"Als Vollsicherung erstellt: Die Basissicherung stammt aus der Zeit vor der "
+"Als Vollsicherung erstellt: Die Basissicherung ist älter als die "
 "Änderungsverfolgung"
 
 #: core/services.py:49
@@ -347,8 +404,8 @@ msgstr "Wie sich die Sicherungsarten unterscheiden und wann welche passt."
 
 #: core/templates/base.html:8
 msgid ""
-"DataStudio backs up PostgreSQL databases: full, incremental and differential"
-" backups."
+"DataStudio backs up PostgreSQL databases: full, incremental and differential "
+"backups."
 msgstr ""
 "DataStudio sichert PostgreSQL-Datenbanken: vollständige, inkrementelle und "
 "differenzielle Sicherungen."
@@ -514,8 +571,8 @@ msgstr "Server"
 #: core/templates/remove.html:24
 #, python-format
 msgid ""
-"%(counter)s later backup was taken on top of this one and cannot be restored"
-" without it."
+"%(counter)s later backup was taken on top of this one and cannot be restored "
+"without it."
 msgid_plural ""
 "%(counter)s later backups were taken on top of this one and cannot be "
 "restored without it."
@@ -571,8 +628,7 @@ msgstr "Sicherung von „%(db)s“ erstellt"
 #, python-format
 msgid "Backup of “%(db)s” queued: it will appear below when ready"
 msgstr ""
-"Sicherung von „%(db)s“ eingereiht: Sie erscheint unten, sobald sie fertig "
-"ist"
+"Sicherung von „%(db)s“ eingereiht: Sie erscheint unten, sobald sie fertig ist"
 
 #: core/views.py:102
 msgid "This backup is being taken right now; delete it when it finishes"
@@ -637,8 +693,7 @@ msgstr ""
 
 #: custom_auth/templates/auth_base.html:13
 msgid ""
-"The connection is checked before the backup starts, with clear error "
-"messages"
+"The connection is checked before the backup starts, with clear error messages"
 msgstr ""
 "Die Verbindung wird vor der Sicherung geprüft, mit verständlichen "
 "Fehlermeldungen"

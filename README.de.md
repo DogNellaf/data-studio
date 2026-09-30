@@ -47,8 +47,8 @@ psql postgres://shop:shop@localhost:5433/shop \
 
 Ein Team muss mehrere PostgreSQL-Datenbanken sichern, ohne SSH-Zugang zum
 Server und ohne `pg_dump` von Hand aufzurufen. Vollständige Dumps einer großen
-Datenbank sind teuer, deshalb braucht es dazwischen kleine Sicherungen nur mit
-den Änderungen, und ein Dump darf die Webanwendung nie blockieren.
+Datenbank sind teuer, deshalb braucht es dazwischen kleine Sicherungen, die nur
+die Änderungen enthalten, und ein Dump darf die Webanwendung nie blockieren.
 
 ### Lösung
 
@@ -115,7 +115,7 @@ COMMIT;
   eine Tabelle in der Anwendungsdatenbank; `backup_worker` holt Aufgaben mit
   `SELECT … FOR UPDATE SKIP LOCKED`, sodass mehrere Worker parallel laufen
   können. Aufgaben eines abgestürzten Workers werden als unterbrochen markiert,
-  und ein anhaltender Worker beendet zuerst seinen laufenden Dump.
+  und ein Worker, der gestoppt wird, beendet zuerst seinen laufenden Dump.
 - **Austauschbarer Speicher.** Dateien laufen über die Storage-API von Django:
   lokale Festplatte oder jeder S3-kompatible Dienst (AWS S3, MinIO …). Eine
   Sicherungskette verlässt nie einen Speicherort, daher lässt sich jeder für
@@ -131,7 +131,7 @@ COMMIT;
 - Die Verbindung wird vor dem Einreihen geprüft, sodass ein falsches Passwort
   direkt im Formular erscheint statt später als fehlgeschlagene Aufgabe.
 - Jeder kann nur seine eigenen Sicherungen sehen, herunterladen und löschen;
-  alles andere ergibt 404. Auch die Basissicherung für Deltas wird nur unter den
+  alles andere ergibt einen 404-Fehler. Auch die Basissicherung für Deltas wird nur unter den
   eigenen gesucht.
 - Alle Geheimnisse kommen aus der Umgebung. In Produktion startet die Anwendung
   ohne `DJANGO_SECRET_KEY` nicht, und `check --deploy` läuft ohne Warnungen
@@ -276,9 +276,9 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
 131 Tests, 97 % Abdeckung; S3 wird gegen moto getestet. Die CI startet
 PostgreSQL 16 für die Integrationstests und fährt nach dem Image-Build den
 gesamten Compose-Stack hoch, um über den Worker Voll- und inkrementelle
-Sicherungen sowohl auf die lokale Festplatte als auch nach S3 (SeaweedFS) zu erstellen,
-einschließlich einer Schemaänderung, nach der statt eines Deltas eine
-Vollsicherung entsteht ([`docker/smoke_test.py`](docker/smoke_test.py)).
+Sicherungen sowohl auf die lokale Festplatte als auch nach S3 (SeaweedFS) zu
+erstellen, einschließlich einer Schemaänderung, nach der statt eines Deltas
+eine Vollsicherung entsteht ([`docker/smoke_test.py`](docker/smoke_test.py)).
 
 ## Projektstruktur
 
