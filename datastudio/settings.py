@@ -39,11 +39,16 @@ if not SECRET_KEY:
             'DJANGO_SECRET_KEY is not set. Copy .env.example to .env and fill '
             'it in, or export the variable in the environment.'
         )
-    # Ephemeral key so a fresh clone runs straight away in development.
-    # It changes on every restart, which invalidates existing sessions.
-    SECRET_KEY = get_random_string(
-        50, 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
-    )
+    # A local development key, generated once so a fresh clone runs straight
+    # away. It is kept in a git-ignored file rather than regenerated on every
+    # start: the web process and the backup worker must share it to decrypt
+    # queued credentials, and sessions survive restarts.
+    _dev_key_file = BASE_DIR / '.dev-secret-key'
+    if not _dev_key_file.exists():
+        _dev_key_file.write_text(get_random_string(
+            50, 'abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)'
+        ))
+    SECRET_KEY = _dev_key_file.read_text().strip()
 
 ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=[])
 if DEBUG and not ALLOWED_HOSTS:
@@ -192,12 +197,34 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 WHITENOISE_USE_FINDERS = DEBUG
 WHITENOISE_AUTOREFRESH = DEBUG
 
+# Backup file backends are the STORAGES entries named "backups-<name>"; the
+# Storage catalog in the database points at one of them by <name>. Local
+# disk is always available, S3 (or any S3-compatible service such as MinIO)
+# only when BACKUP_S3_BUCKET is set.
 STORAGES = {
     'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
     'staticfiles': {
         'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
     },
+    'backups-local': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
 }
+
+BACKUP_S3_BUCKET = env.str('BACKUP_S3_BUCKET', default='')
+if BACKUP_S3_BUCKET:
+    STORAGES['backups-s3'] = {
+        'BACKEND': 'storages.backends.s3.S3Storage',
+        'OPTIONS': {
+            'bucket_name': BACKUP_S3_BUCKET,
+            'location': env.str('BACKUP_S3_PREFIX', default='datastudio'),
+            'endpoint_url': env.str('BACKUP_S3_ENDPOINT_URL', default='') or None,
+            'region_name': env.str('BACKUP_S3_REGION', default='') or None,
+            'access_key': env.str('BACKUP_S3_ACCESS_KEY', default='') or None,
+            'secret_key': env.str('BACKUP_S3_SECRET_KEY', default='') or None,
+            # MinIO and most self-hosted services need path-style URLs.
+            'addressing_style': env.str('BACKUP_S3_ADDRESSING_STYLE', default='') or None,
+            'file_overwrite': False,
+        },
+    }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
@@ -210,9 +237,9 @@ LOGIN_URL = 'custom_auth.login'
 LOGIN_REDIRECT_URL = 'core.index'
 LOGOUT_REDIRECT_URL = 'custom_auth.login'
 
-# Directory where generated backup files (*.sql) are stored. Kept as a plain
-# pathlib.Path so os.path.join / os.makedirs in the backup code keep working.
-MEDIA_DIR = Path(env.str('BACKUP_DIR', default=str(BASE_DIR / 'backups')))
+# Directory of the local backup storage ("backups-local" above uses it as
+# its location). There are no other user uploads in the project.
+MEDIA_ROOT = Path(env.str('BACKUP_DIR', default=str(BASE_DIR / 'backups')))
 
 # Path to the PostgreSQL ``pg_dump`` executable used for full backups.
 # Defaults to resolving it from PATH; set PG_DUMP_PATH when it lives elsewhere
@@ -225,6 +252,19 @@ DB_CONNECT_TIMEOUT = env.int('DB_CONNECT_TIMEOUT', default=5)
 # Upper bound (seconds) for a single pg_dump run, so a stuck dump cannot hold
 # a worker forever.
 PG_DUMP_TIMEOUT = env.int('PG_DUMP_TIMEOUT', default=600)
+
+# Backups are taken by a separate worker (``python manage.py backup_worker``)
+# so a long dump never holds a web request. The source database password
+# waits in the queue encrypted with this key (derived from SECRET_KEY when
+# empty) and is erased as soon as the job finishes.
+BACKUP_CREDENTIALS_KEY = env.str('BACKUP_CREDENTIALS_KEY', default='')
+
+# How often an idle worker polls the queue, seconds.
+BACKUP_WORKER_POLL_INTERVAL = env.float('BACKUP_WORKER_POLL_INTERVAL', default=2.0)
+
+# Run backups inside the web request instead of queueing them. Handy for a
+# quick local try without a worker; not meant for production.
+BACKUP_RUN_INLINE = env.bool('BACKUP_RUN_INLINE', default=False)
 
 # Optional demo account shown on the login page of a public showcase instance.
 # Created by ``python manage.py seed_demo``; leave empty to hide the hint.

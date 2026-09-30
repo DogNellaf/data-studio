@@ -3,3 +3,6 @@ psycopg2-binary==2.9.12
 django-environ==0.14.0
 whitenoise==6.12.0
 gunicorn==26.2.0
+django-storages[s3]==1.14.6
+boto3==1.43.106
+cryptography==50.0.2

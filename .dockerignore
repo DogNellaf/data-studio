@@ -13,3 +13,4 @@ staticfiles
 docs
 *.sql
 !docker/demo-db/*.sql
+.dev-secret-key

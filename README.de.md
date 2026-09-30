@@ -8,11 +8,12 @@
 ![PostgreSQL](https://img.shields.io/badge/postgresql-16%20%7C%2017-4169E1)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Eine Webanwendung zur Sicherung von PostgreSQL-Datenbanken. Sie erstellt
-Vollsicherungen mit `pg_dump` und darauf aufbauend inkrementelle und
-differenzielle Sicherungen. Sicherungen lassen sich herunterladen und löschen,
-und jeder Benutzer sieht nur seine eigenen. Die Oberfläche ist standardmäßig
-auf Englisch und über den Sprachumschalter in der Kopfzeile auch auf Russisch,
+Eine Webanwendung zur Sicherung von PostgreSQL-Datenbanken: Vollsicherungen mit
+`pg_dump` und darauf aufbauend inkrementelle und differenzielle Sicherungen,
+gelöschte Zeilen eingeschlossen. Die Sicherungen erstellt ein Hintergrund-Worker,
+die Dateien liegen auf der lokalen Festplatte oder in einem S3-kompatiblen
+Objektspeicher. Jeder Benutzer sieht nur seine eigenen Sicherungen. Die
+Oberfläche ist standardmäßig auf Englisch und außerdem auf Russisch,
 Französisch und Deutsch verfügbar.
 
 ![Liste der Sicherungen](docs/screenshots/de/backups.png)
@@ -24,16 +25,20 @@ docker compose up --build
 ```
 
 Öffnen Sie <http://localhost:8000> und melden Sie sich mit **demo / demo12345**
-an. Der Compose-Stack enthält eine Demo-Datenbank eines Onlineshops. Geben Sie
-im Formular „Neue Sicherung“ den Host `demo-db`, Port `5432`, die Datenbank
-`shop` sowie Benutzer und Passwort `shop` ein.
+an. Der Compose-Stack startet die Anwendung, den Sicherungs-Worker, eine
+Demo-Datenbank eines Onlineshops und MinIO als S3-Speicher. Geben Sie im
+Formular „Neue Sicherung“ den Host `demo-db`, Port `5432`, die Datenbank
+`shop` sowie Benutzer und Passwort `shop` ein und wählen Sie die lokale
+Festplatte oder MinIO. Die Dateien in MinIO sind in dessen Konsole unter
+<http://localhost:9001> zu sehen (minio / minio-secret).
 
 Um Delta-Sicherungen in Aktion zu sehen, ändern Sie Daten und erstellen dann
 eine inkrementelle Sicherung:
 
 ```bash
 psql postgres://shop:shop@localhost:5433/shop \
-  -c "UPDATE products SET price = price * 1.1 WHERE id <= 20"
+  -c "UPDATE products SET price = price * 1.1 WHERE id <= 20" \
+  -c "DELETE FROM order_items WHERE order_id = 1"
 ```
 
 ## Fallstudie
@@ -42,56 +47,83 @@ psql postgres://shop:shop@localhost:5433/shop \
 
 Ein Team muss mehrere PostgreSQL-Datenbanken sichern, ohne SSH-Zugang zum
 Server und ohne `pg_dump` von Hand aufzurufen. Vollständige Dumps einer großen
-Datenbank sind teuer, deshalb braucht es dazwischen kleine Sicherungen, die nur
-die Änderungen enthalten.
+Datenbank sind teuer, deshalb braucht es dazwischen kleine Sicherungen nur mit
+den Änderungen, und ein Dump darf die Webanwendung nie blockieren.
 
 ### Lösung
 
 | Typ | Inhalt | Zur Wiederherstellung nötig |
 |---|---|---|
 | **Vollständig** | Schema und alle Daten (`pg_dump`) | Nur diese Sicherung |
-| **Inkrementell** | Zeilen, die seit der letzten Sicherung beliebigen Typs geändert wurden | Die Vollsicherung und alle inkrementellen seitdem |
-| **Differenziell** | Zeilen, die seit der letzten Vollsicherung geändert wurden | Die Vollsicherung und die neueste differenzielle |
+| **Inkrementell** | Änderungen seit der letzten Sicherung beliebigen Typs | Die Vollsicherung und alle inkrementellen seitdem |
+| **Differenziell** | Änderungen seit der letzten Vollsicherung | Die Vollsicherung und die neueste differenzielle |
 
-Eine Delta-Sicherung ist eine SQL-Datei mit Upserts in einer einzigen
-Transaktion. Sie wird mit einem einfachen `psql -f` auf eine aus der
-Vollsicherung wiederhergestellte Datenbank angewendet:
+Jede Sicherung speichert zusätzlich eine **Zustandsdatei**: einen Hash jeder
+Zeile jeder Tabelle, geordnet nach Primärschlüssel. Ein Delta vergleicht die
+aktuelle Datenbank mit dem Zustand seiner Basissicherung. Es braucht daher
+keine `updated_at`-Spalten und erfasst alles: neue und geänderte Zeilen werden
+zu Upserts, verschwundene zu `DELETE`s. Das Ergebnis ist eine SQL-Datei in
+einer einzigen Transaktion, die mit einem einfachen `psql -f` auf die
+wiederhergestellte Basis angewendet wird:
 
 ```sql
 BEGIN;
-ALTER TABLE "products" DISABLE TRIGGER USER;
-INSERT INTO "products" ("id", "title", "price", "stock", "updated_at")
-VALUES ('1', 'Товар №1', '8672.42', '92', '2026-09-30 11:37:21.910003+00')
+ALTER TABLE "public"."products" DISABLE TRIGGER USER;
+INSERT INTO "public"."products" ("id", "title", "price", "stock", "updated_at")
+VALUES ('1', 'Товар №1', '5847.18', '103', '2026-09-30 20:33:18.241939+00')
 ON CONFLICT ("id") DO UPDATE SET "title" = EXCLUDED."title", ...;
-ALTER TABLE "products" ENABLE TRIGGER USER;
+DELETE FROM "public"."order_items" WHERE ("order_id", "product_id") IN (('1', '2'), ('1', '15'));
+ALTER TABLE "public"."products" ENABLE TRIGGER USER;
+SELECT pg_catalog.setval('public.customers_id_seq', 501, true);
 COMMIT;
 ```
 
 ### Technische Highlights
 
 - **Wiederherstellungen werden durchgängig getestet.** Integrationstests laufen
-  gegen ein echtes PostgreSQL: Vollsicherung, Datenänderungen, Deltas,
-  Wiederherstellung in eine leere Datenbank und Vergleich mit der Quelle.
-- **Upserts per Primärschlüssel.** Eine geänderte Zeile existiert nach der
-  Vollwiederherstellung bereits; sie wird aktualisiert, statt an einer
-  Eindeutigkeitsverletzung zu scheitern.
-- **Reihenfolge nach Fremdschlüsseln.** Die Tabellen werden anhand von
-  `pg_constraint` topologisch sortiert, sodass eine neue Bestellung nach ihrem
-  neuen Kunden eingefügt wird.
-- **PostgreSQL übernimmt das Escaping.** `quote_nullable()` läuft serverseitig,
-  sodass JSON, Arrays, `bytea`, Anführungszeichen und NULL ohne Formatierung in
-  Python korrekt übertragen werden.
-- **Ein konsistenter Snapshot.** Deltas werden in einer Transaktion
-  `REPEATABLE READ READ ONLY` gelesen.
-- **Werte werden unverändert wiederhergestellt.** Benutzer-Trigger wie
-  „`updated_at` aktualisieren“ sind beim Einfügen deaktiviert und können die
-  gesicherten Werte nicht überschreiben.
+  gegen ein echtes PostgreSQL: Vollsicherung, Updates, Inserts, kaskadierende
+  Löschungen, eine Tabelle ohne Primärschlüssel, ein weiteres Schema,
+  Sequenzänderungen, dann Wiederherstellung in eine leere Datenbank und
+  Vergleich mit der Quelle. Entfernt man aus der Engine die Löschungen, die
+  Sequenzen oder alle Schemas außer `public`, schlagen die Tests fehl.
+- **Jede Änderung wird erfasst.** Zeilen-Hashes statt Zeitstempeln: gelöschte
+  Zeilen, Tabellen ohne `updated_at` und alle Schemas sind dabei. Eine Tabelle
+  ohne Primärschlüssel wird vollständig neu geschrieben, wenn sich ihr Inhalt
+  ändert.
+- **Ein konsistenter Snapshot.** Die Vollsicherung übergibt den Snapshot ihrer
+  Transaktion an `pg_dump --snapshot`, sodass Dump und Zustandsdatei denselben
+  Moment beschreiben, auch wenn währenddessen geschrieben wird. Deltas werden in
+  einer einzigen Transaktion `REPEATABLE READ READ ONLY` gelesen.
+- **Richtige Reihenfolge.** Upserts laufen von Eltern zu Kindern, Löschungen
+  von Kindern zu Eltern (topologische Sortierung von `pg_constraint`). Sequenzen
+  werden auf ihren aktuellen Wert gesetzt, damit neue Zeilen nach der
+  Wiederherstellung nicht mit wiederhergestellten IDs kollidieren.
+- **Werte werden unverändert wiederhergestellt.** PostgreSQL übernimmt das
+  Escaping (`quote_nullable()`), und Benutzer-Trigger wie „`updated_at`
+  aktualisieren“ sind beim Schreiben deaktiviert.
+- **Schemaänderungen werden erkannt.** Ist seit der Basissicherung eine Tabelle
+  oder Spalte hinzugekommen oder verschwunden, bricht das Delta mit einer klaren
+  Meldung („zuerst eine Vollsicherung erstellen“) ab, statt eine Datei zu
+  erzeugen, die sich nicht wiederherstellen lässt.
+- **Hintergrundaufgaben ohne zusätzliche Infrastruktur.** Die Warteschlange ist
+  eine Tabelle in der Anwendungsdatenbank; `backup_worker` holt Aufgaben mit
+  `SELECT … FOR UPDATE SKIP LOCKED`, sodass mehrere Worker parallel laufen
+  können. Aufgaben eines abgestürzten Workers werden als unterbrochen markiert,
+  und ein anhaltender Worker beendet zuerst seinen laufenden Dump.
+- **Austauschbarer Speicher.** Dateien laufen über die Storage-API von Django:
+  lokale Festplatte oder jeder S3-kompatible Dienst (AWS S3, MinIO …). Eine
+  Sicherungskette verlässt nie einen Speicherort, daher lässt sich jeder für
+  sich wiederherstellen.
 
 ### Sicherheit
 
-- Passwörter der Quelldatenbanken werden **nie gespeichert**. Sie existieren
-  nur während der Sicherung und gelangen über die Umgebung zu `pg_dump`, nicht
-  über die Kommandozeile.
+- Passwörter der Quelldatenbanken werden **nie im Klartext gespeichert**.
+  Während eine Aufgabe wartet, ist das Passwort verschlüsselt (Fernet, Schlüssel
+  abgeleitet aus `BACKUP_CREDENTIALS_KEY`), und es wird gelöscht, sobald die
+  Aufgabe endet. Zu `pg_dump` gelangt es über die Umgebung, nicht über die
+  Kommandozeile.
+- Die Verbindung wird vor dem Einreihen geprüft, sodass ein falsches Passwort
+  direkt im Formular erscheint statt später als fehlgeschlagene Aufgabe.
 - Jeder kann nur seine eigenen Sicherungen sehen, herunterladen und löschen;
   alles andere ergibt 404. Auch die Basissicherung für Deltas wird nur unter den
   eigenen gesucht.
@@ -111,59 +143,63 @@ COMMIT;
   wird bewusst ignoriert; der Umschalter EN / RU / FR / DE speichert die Wahl in
   einem Cookie, und die Sprache gilt nur für die jeweilige Anfrage, damit sie
   nicht in die nächste durchsickert.
-- Namen und Beschreibungen der Sicherungstypen stammen aus übersetzbaren Texten
-  zu einem stabilen Code, nicht aus Datenbankzeilen, und folgen daher der
-  gewählten Sprache.
-- Die CI prüft, dass der kompilierte `.mo`-Katalog zur `.po`-Quelle passt.
+- Fehler von Aufgaben werden als Codes gespeichert und erst bei der Anzeige
+  übersetzt, denn der Worker weiß nicht, in welcher Sprache der Benutzer liest.
+- Die CI prüft, dass die kompilierten `.mo`-Kataloge zu den `.po`-Quellen passen.
 
 ### Architektur
 
 ```mermaid
 flowchart LR
-    U[Browser] -->|HTTP| V[Django-Views<br/>core, custom_auth]
-    V --> F[Formulare<br/>Validierung]
-    V --> S[core.services<br/>Wahl der Basissicherung,<br/>Transaktion]
-    S --> B[backuper.utils]
-    B -->|pg_dump| SRC[(Quell-<br/>PostgreSQL)]
-    B -->|psycopg2, REPEATABLE READ| SRC
-    B --> FS[/BACKUP_DIR/*.sql/]
-    S --> DB[(App-Datenbank<br/>PostgreSQL)]
+    U[Browser] -->|HTTP| V[Django-Views]
+    V -->|Verbindung prüfen,<br/>einreihen| Q[(App-Datenbank<br/>Warteschlange)]
+    W[backup_worker] -->|SKIP LOCKED| Q
+    W --> B[backuper<br/>pg_dump + Zeilen-Hashes]
+    B -->|REPEATABLE READ| SRC[(Quell-<br/>PostgreSQL)]
+    W -->|Django-Storage-API| ST[/Lokale Festplatte oder S3/]
+    V -->|Download| ST
 ```
 
 | Modul | Aufgabe |
 |---|---|
 | `core/views.py` | Schlanke Views: HTTP, Formulare, Meldungen |
-| `core/services.py` | Geschäftslogik: welche Sicherung, gegen welche Basis, Rollback bei Fehlern |
-| `backuper/utils.py` | Vollsicherungen per `pg_dump`, Delta-Export als Upsert-SQL |
+| `core/services.py` | Warteschlange und Aufgaben: einreihen, holen, ausführen, Basissicherung wählen, Passwort löschen |
+| `core/management/commands/backup_worker.py` | Der Worker-Prozess |
+| `backuper/utils.py` | Vollsicherungen per `pg_dump --snapshot`, Zustandsdateien, Delta-Export |
+| `core/backends.py`, `core/crypto.py` | Speicher-Backends und Verschlüsselung wartender Passwörter |
 | `custom_auth/` | Anmeldung, Registrierung und Profil auf Basis der Django-Auth-Formulare |
-| `core/migrations/0007_*` | Datenmigration: stabile Typcodes statt Anzeigenamen, gespeicherte Passwörter entfernt |
 
 ### Was die Überarbeitung geändert hat
 
 Das Projekt begann als Prototyp aus einer Studienarbeit. Um es einsatzfähig zu
 machen, war Folgendes nötig:
 
-- Fehler in den Delta-Sicherungen beheben: Die Spaltensuche ignorierte das
-  Schema, und Dateien aus einfachen `INSERT`s ließen sich nicht auf eine
-  Vollsicherung anwenden;
+- die Deltas neu bauen: Sie übersahen gelöschte Zeilen, Tabellen ohne
+  `updated_at` und alle Schemas außer `public`, und ihre Dateien ließen sich
+  nicht auf eine Vollsicherung anwenden;
+- Sicherungen aus der Webanfrage in einen Worker verlagern und Dateien aus
+  einem einzigen Verzeichnis in austauschbare Speicher mit S3-Unterstützung;
 - Passwörter fremder Datenbanken nicht länger im Klartext speichern;
-- den Sicherungsalgorithmus von übersetzbaren Typnamen entkoppeln (das
-  Umbenennen eines Typs im Adminbereich brach die Sicherungen), mit einer
-  Datenmigration für bestehende Zeilen;
+- den Algorithmus von übersetzbaren Typnamen entkoppeln, mit Datenmigrationen
+  für bestehende Zeilen;
 - das manuelle Parsen von `request.POST` durch Django-Formulare und eine
   Service-Schicht ersetzen;
 - die Oberfläche neu bauen: handgeschriebenes CSS statt Tailwind per CDN, mit
-  dunklem Modus, responsivem Layout, Leerzuständen und klaren Fehlermeldungen;
-- die Oberfläche übersetzen: Englisch als Standard, dazu Russisch, Französisch
-  und Deutsch;
-- Docker, CI (Lint, Unit- und Integrationstests, Image-Build) und Demodaten
-  ergänzen.
+  dunklem Modus, responsivem Layout, Aufgabenstatus, Leerzuständen und klaren
+  Fehlermeldungen;
+- die Oberfläche ins Russische, Französische und Deutsche übersetzen;
+- Docker, CI (Lint, Unit- und Integrationstests, Image-Build, ein Durchlauf
+  des gesamten Stacks) und Demodaten ergänzen.
 
 ## Screenshots
 
 | Neue Sicherung | Verbindungsfehler |
 |---|---|
 | ![Formular](docs/screenshots/de/create.png) | ![Fehler](docs/screenshots/de/create-error.png) |
+
+| Speicherorte | Löschen einer Basissicherung |
+|---|---|
+| ![Speicherorte](docs/screenshots/de/storages.png) | ![Löschen](docs/screenshots/de/remove.png) |
 
 | Dunkler Modus | Mobil |
 |---|---|
@@ -184,8 +220,12 @@ pip install -r requirements.txt
 cp .env.example .env            # DATABASE_URL eintragen
 python manage.py migrate        # legt Sicherungstypen und einen Standard-Speicherort an
 python manage.py createsuperuser
-python manage.py runserver
+python manage.py runserver      # die Webanwendung
+python manage.py backup_worker  # in einem zweiten Terminal: erstellt eingereihte Sicherungen
 ```
+
+Für einen schnellen Test ohne Worker setzen Sie `BACKUP_RUN_INLINE=True`; dann
+werden Sicherungen direkt in der Anfrage erstellt.
 
 ## Konfiguration
 
@@ -194,18 +234,26 @@ vollständige, kommentierte Liste steht in [`.env.example`](.env.example).
 
 | Variable | Zweck | Standard |
 |---|---|---|
-| `DJANGO_SECRET_KEY` | Geheimer Schlüssel; Pflicht bei `DEBUG=False` | — |
+| `DJANGO_SECRET_KEY` | Geheimer Schlüssel; Pflicht bei `DEBUG=False` | im Debug-Modus ein lokaler Schlüssel in `.dev-secret-key` |
 | `DJANGO_DEBUG` | Debug-Modus | `False` |
 | `DJANGO_ALLOWED_HOSTS` | Erlaubte Hosts, kommagetrennt | `localhost` im Debug-Modus |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | Vertrauenswürdige CSRF-Origins | — |
 | `DJANGO_TIME_ZONE` | Zeitzone für angezeigte Daten | `UTC` |
-| `DATABASE_URL` | Datenbank der Anwendung | `postgres://…/DataStudio` |
-| `BACKUP_DIR` | Verzeichnis für Sicherungsdateien | `./backups` |
+| `DATABASE_URL` | Datenbank der Anwendung (enthält auch die Warteschlange) | `postgres://…/DataStudio` |
+| `BACKUP_DIR` | Verzeichnis des lokalen Speichers | `./backups` |
+| `BACKUP_S3_BUCKET` | Aktiviert den S3-Speicher | — |
+| `BACKUP_S3_PREFIX`, `BACKUP_S3_ENDPOINT_URL`, `BACKUP_S3_REGION`, `BACKUP_S3_ACCESS_KEY`, `BACKUP_S3_SECRET_KEY`, `BACKUP_S3_ADDRESSING_STYLE` | Ort und Zugang zu S3; Endpoint und `path`-Stil sind für MinIO und andere S3-kompatible Dienste | Präfix `datastudio`, AWS-Standards |
+| `BACKUP_CREDENTIALS_KEY` | Schlüssel für wartende Passwörter; muss für Anwendung und Worker gleich sein | abgeleitet aus `DJANGO_SECRET_KEY` |
+| `BACKUP_WORKER_POLL_INTERVAL` | Wie oft ein untätiger Worker die Warteschlange prüft, s | `2` |
+| `BACKUP_RUN_INLINE` | Sicherungen in der Anfrage erstellen statt einreihen | `False` |
 | `PG_DUMP_PATH` | `pg_dump`-Programm | aus `PATH` |
 | `PG_DUMP_TIMEOUT` | Höchstdauer eines `pg_dump`-Laufs, s | `600` |
 | `DB_CONNECT_TIMEOUT` | Verbindungs-Timeout zur Quelldatenbank, s | `5` |
 | `DEMO_USERNAME` / `DEMO_PASSWORD` | Demo-Konto, auf der Anmeldeseite angezeigt | — |
 | `DJANGO_SECURE_SSL_REDIRECT`, `DJANGO_SECURE_HSTS_SECONDS`, `DJANGO_SECURE_COOKIES`, `DJANGO_USE_X_FORWARDED_PROTO` | HTTPS-Härtung für die Produktion | aktiviert |
+
+`python manage.py seed_demo` legt den Demo-Benutzer an und registriert bei
+konfiguriertem S3 den S3-Speicher; fehlt der Bucket, wird er erstellt.
 
 ## Tests
 
@@ -219,32 +267,34 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-98 Tests, 98 % Abdeckung. Die CI startet PostgreSQL 16 und führt echte
-`pg_dump`- und `psql`-Aufrufe aus.
+124 Tests, 97 % Abdeckung; S3 wird gegen moto getestet. Die CI startet
+PostgreSQL 16 für die Integrationstests und fährt nach dem Image-Build den
+gesamten Compose-Stack hoch, um über den Worker Voll- und inkrementelle
+Sicherungen sowohl auf die lokale Festplatte als auch nach MinIO zu erstellen
+([`docker/smoke_test.py`](docker/smoke_test.py)).
 
 ## Einschränkungen
 
-Bekannte Grenzen der aktuellen Implementierung:
-
-- Deltas erfassen keine **gelöschten** Zeilen; dafür wären logische Replikation
-  oder ein Löschprotokoll nötig.
-- In Deltas landen nur Tabellen des Schemas `public` mit einer Spalte
-  `updated_at` oder `created_at`; andere Tabellen stehen nur in
-  Vollsicherungen.
-- Sicherungen laufen synchron in der Anfrage. Für Datenbanken mit mehreren
-  zehn Gigabyte bräuchte es eine Task-Queue (Celery/RQ) und S3-Speicher.
-- Der einzige Speicherort ist das lokale `BACKUP_DIR`. Das Modell des
-  Speicherkatalogs lässt Platz für weitere Backends.
+- Ein Delta vergleicht jede Zeile: Jede Sicherung liest ganze Tabellen, und der
+  Worker hält die Zeilen-Hashes der größten Tabelle im Speicher. Bis zu
+  Millionen Zeilen ist das in Ordnung; darüber hinaus ist logische Replikation
+  (WAL) das richtige Werkzeug.
+- Schemaänderungen (neue Tabellen oder Spalten) übertragen Deltas nicht: Die
+  Anwendung erkennt sie und verlangt eine neue Vollsicherung.
+- Eine Tabelle ohne Primärschlüssel wird bei jeder Änderung vollständig neu
+  geschrieben.
+- Sicherungen, die vor den Zustandsdateien entstanden sind, können keine Basis
+  für Deltas sein; die nächste Vollsicherung beginnt eine neue Kette.
 
 ## Projektstruktur
 
 ```
-├── backuper/            # Sicherungen: pg_dump und Delta-Export
-├── core/                # Sicherungen: Modelle, Formulare, Services, Views, Templates, CSS
+├── backuper/            # Sicherungen: pg_dump, Zustandsdateien, Deltas
+├── core/                # Sicherungen: Modelle, Aufgaben, Speicher, Views, Templates, CSS
 ├── custom_auth/         # Anmeldung, Registrierung, Profil
 ├── datastudio/          # Einstellungen und Root-URLconf
 ├── locale/              # Russische, französische und deutsche Übersetzungen (gettext)
-├── docker/              # Entrypoint und Daten der Demo-Datenbank
+├── docker/              # Entrypoint, Demodaten, Stack-Smoke-Test
 ├── docs/screenshots/
 ├── Dockerfile
 ├── docker-compose.yml

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load humanize i18n %}
 {% block title %}{% translate "Backups" %}{% endblock %}
+{% block head %}{% if has_active %}<meta http-equiv="refresh" content="3">{% endif %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -51,15 +52,24 @@
           </td>
           <td><span class="badge badge--{{ backup.type.code }}">{{ backup.type.label }}</span></td>
           <td class="hide-sm cell-sub">{{ backup.storage.location }}</td>
-          <td class="num hide-sm">{{ backup.size|filesizeformat|default:"—" }}</td>
+          <td class="num hide-sm">{% if backup.is_ready %}{{ backup.size|filesizeformat|default:"—" }}{% else %}—{% endif %}</td>
           <td>
+            {% if backup.status == "succeeded" %}
             <div>{{ backup.created_at|date:"SHORT_DATETIME_FORMAT" }}</div>
             <div class="cell-sub">{{ backup.created_at|naturaltime }}</div>
+            {% else %}
+            <span class="status status--{{ backup.status }}">{{ backup.get_status_display }}</span>
+            {% if backup.error_text %}<div class="cell-sub status-error">{{ backup.error_text }}</div>{% endif %}
+            {% endif %}
           </td>
           <td>
             <div class="actions">
+              {% if backup.is_ready %}
               <a class="icon-btn" href="{% url 'core.download' backup.id %}" title="{% translate 'Download' %}" aria-label="{% blocktranslate with db=backup.db %}Download backup of {{ db }}{% endblocktranslate %}">{% include "icons/download.svg" %}</a>
+              {% endif %}
+              {% if backup.status != "running" %}
               <a class="icon-btn icon-btn--danger" href="{% url 'core.remove' backup.id %}" title="{% translate 'Delete' %}" aria-label="{% blocktranslate with db=backup.db %}Delete backup of {{ db }}{% endblocktranslate %}">{% include "icons/trash.svg" %}</a>
+              {% endif %}
             </div>
           </td>
         </tr>

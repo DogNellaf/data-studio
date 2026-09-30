@@ -1,4 +1,4 @@
-import os
+import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -10,31 +10,49 @@ from django.views.decorators.http import require_http_methods
 
 from core.forms import BackupForm
 from core.models import Backup, BackupType, Storage
-from core.services import BackupError, create_backup, delete_backup
+from core.services import BackupError, delete_backup, enqueue_backup, error_message
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
 def index(request):
-    backups = Backup.objects.filter(user=request.user).select_related("type", "storage__type")
-    stats = backups.aggregate(
-        count=Count("id"),
-        total_size=Sum("size"),
-        last_created=Max("created_at"),
-        databases=Count("db", distinct=True),
+    backups = list(
+        Backup.objects.filter(user=request.user).select_related("type", "storage__type", "base")
     )
-    return render(request, "index.html", {"backups": backups, "stats": stats})
+    for backup in backups:
+        backup.error_text = error_message(backup) if backup.status == Backup.FAILED else ""
+    stats = Backup.objects.filter(user=request.user).aggregate(
+        count=Count("id", filter=Q(status=Backup.SUCCEEDED)),
+        total_size=Sum("size", filter=Q(status=Backup.SUCCEEDED)),
+        last_created=Max("finished_at", filter=Q(status=Backup.SUCCEEDED)),
+        databases=Count("db", distinct=True, filter=Q(status=Backup.SUCCEEDED)),
+    )
+    context = {
+        "backups": backups,
+        "stats": stats,
+        # Пока есть незавершённые задачи, страница обновляется сама.
+        "has_active": any(backup.is_active for backup in backups),
+    }
+    return render(request, "index.html", context)
 
 
 @login_required
 def download(request, id: int):
     backup = get_object_or_404(Backup, id=id, user=request.user)
+    if not backup.is_ready:
+        messages.error(request, _("This backup is not ready yet"))
+        return redirect("core.index")
 
-    if not os.path.exists(backup.file_path):
-        messages.error(request, _("The backup file is missing on disk"))
+    try:
+        handle = backup.storage.open_backend().open(backup.file_name, "rb")
+    except Exception as exc:  # noqa: BLE001 - файла нет или хранилище недоступно
+        logger.warning("Файл копии %s недоступен: %s", backup.pk, exc)
+        messages.error(request, _("The backup file is missing from the storage"))
         return redirect("core.index")
 
     return FileResponse(
-        open(backup.file_path, "rb"),
+        handle,
         as_attachment=True,
         filename=backup.download_name,
         content_type="application/sql",
@@ -48,11 +66,20 @@ def create(request):
 
     if request.method == "POST" and form.is_valid():
         try:
-            backup = create_backup(request.user, **form.cleaned_data)
+            backup = enqueue_backup(request.user, **form.cleaned_data)
         except BackupError as exc:
             form.add_error(None, str(exc))
         else:
-            messages.success(request, _("Backup of “%(db)s” created") % {"db": backup.db})
+            if backup.status == Backup.SUCCEEDED:
+                messages.success(request, _("Backup of “%(db)s” created") % {"db": backup.db})
+            elif backup.status == Backup.FAILED:
+                messages.error(request, error_message(backup))
+            else:
+                messages.success(
+                    request,
+                    _("Backup of “%(db)s” queued: it will appear below when ready")
+                    % {"db": backup.db},
+                )
             return redirect("core.index")
 
     return render(request, "create.html", {"form": form})
@@ -64,9 +91,13 @@ def remove(request, id: int):
     backup = get_object_or_404(
         Backup.objects.select_related("type", "storage__type"), id=id, user=request.user
     )
+    if backup.status == Backup.RUNNING:
+        messages.error(request, _("This backup is being taken right now; delete it when it finishes"))
+        return redirect("core.index")
 
     if request.method != "POST":
-        return render(request, "remove.html", {"backup": backup})
+        dependents = backup.dependents.filter(status=Backup.SUCCEEDED).count()
+        return render(request, "remove.html", {"backup": backup, "dependents": dependents})
 
     delete_backup(backup)
     messages.success(request, _("Backup deleted"))

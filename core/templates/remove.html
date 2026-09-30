@@ -18,10 +18,10 @@
     <div><dt>{% translate "Server" %}</dt><dd class="mono">{{ backup.host }}:{{ backup.port }}</dd></div>
     <div><dt>{% translate "Database user" %}</dt><dd class="mono">{{ backup.username }}</dd></div>
     <div><dt>{% translate "Created" %}</dt><dd>{{ backup.created_at|date:"SHORT_DATETIME_FORMAT" }}</dd></div>
-    <div><dt>{% translate "Size" %}</dt><dd>{{ backup.size|filesizeformat|default:"—" }}</dd></div>
+    <div><dt>{% translate "Size" %}</dt><dd>{% if backup.is_ready %}{{ backup.size|filesizeformat|default:"—" }}{% else %}{{ backup.get_status_display }}{% endif %}</dd></div>
   </dl>
-  {% if backup.type.code == 'full' %}
-  <div class="alert alert--error" style="margin-top:18px">{% include "icons/alert.svg" %}<span>{% translate "This is a full backup: incremental and differential backups taken after it cannot be restored without it." %}</span></div>
+  {% if dependents %}
+  <div class="alert alert--error" style="margin-top:18px">{% include "icons/alert.svg" %}<span>{% blocktranslate count counter=dependents %}{{ counter }} later backup was taken on top of this one and cannot be restored without it.{% plural %}{{ counter }} later backups were taken on top of this one and cannot be restored without it.{% endblocktranslate %}</span></div>
   {% endif %}
   <div class="form-actions" style="margin-top:22px">
     <a class="btn btn--ghost" href="{% url 'core.index' %}">{% translate "Cancel" %}</a>

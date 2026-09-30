@@ -1,30 +1,41 @@
-# Локальное демо: приложение, его база и демонстрационная база «shop»,
-# с которой можно снимать копии.
+# Локальное демо: приложение, воркер копий, база приложения, демонстрационная
+# база «shop», с которой можно снимать копии, и MinIO как S3-хранилище.
 #
 #     docker compose up --build
 #
 # Затем откройте http://localhost:8000 и войдите как demo / demo12345.
 # В форме создания копии укажите: хост demo-db, порт 5432, база shop,
-# пользователь shop, пароль shop.
+# пользователь shop, пароль shop. Хранилище — локальный диск или MinIO (S3).
+# Файлы в MinIO видно в консоли http://localhost:9001 (minio / minio-secret).
+
+x-app-env: &app-env
+  DATABASE_URL: postgres://datastudio:datastudio@app-db:5432/datastudio
+  # Только для локального демо. В продакшене задайте свои ключи.
+  DJANGO_SECRET_KEY: docker-compose-demo-key-change-me-0123456789abcdef
+  BACKUP_CREDENTIALS_KEY: docker-compose-demo-credentials-key
+  DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+  DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000
+  # Демо работает по HTTP, без TLS-прокси.
+  DJANGO_SECURE_SSL_REDIRECT: "False"
+  DJANGO_SECURE_HSTS_SECONDS: "0"
+  DJANGO_SECURE_COOKIES: "False"
+  DJANGO_TIME_ZONE: Europe/Moscow
+  DEMO_USERNAME: demo
+  DEMO_PASSWORD: demo12345
+  BACKUP_S3_BUCKET: datastudio
+  BACKUP_S3_PREFIX: backups
+  BACKUP_S3_ENDPOINT_URL: http://minio:9000
+  BACKUP_S3_REGION: us-east-1
+  BACKUP_S3_ACCESS_KEY: minio
+  BACKUP_S3_SECRET_KEY: minio-secret
+  BACKUP_S3_ADDRESSING_STYLE: path
 
 services:
   app:
     build: .
     ports:
       - "8000:8000"
-    environment:
-      DATABASE_URL: postgres://datastudio:datastudio@app-db:5432/datastudio
-      # Только для локального демо. В продакшене задайте свой ключ.
-      DJANGO_SECRET_KEY: docker-compose-demo-key-change-me-0123456789abcdef
-      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
-      DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost:8000,http://127.0.0.1:8000
-      # Демо работает по HTTP, без TLS-прокси.
-      DJANGO_SECURE_SSL_REDIRECT: "False"
-      DJANGO_SECURE_HSTS_SECONDS: "0"
-      DJANGO_SECURE_COOKIES: "False"
-      DJANGO_TIME_ZONE: Europe/Moscow
-      DEMO_USERNAME: demo
-      DEMO_PASSWORD: demo12345
+    environment: *app-env
     volumes:
       - backups:/app/backups
     # Готовность — когда gunicorn отвечает, а не когда стартовал контейнер:
@@ -39,6 +50,23 @@ services:
       app-db:
         condition: service_healthy
       demo-db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  # Снимает копии из очереди. Миграции применяет app, поэтому воркер ждёт его
+  # готовности и запускается без entrypoint.
+  worker:
+    build: .
+    entrypoint: []
+    command: ["python", "manage.py", "backup_worker"]
+    environment: *app-env
+    volumes:
+      - backups:/app/backups
+    # Даём доснять текущую копию при docker compose stop.
+    stop_grace_period: 2m
+    depends_on:
+      app:
         condition: service_healthy
 
   app-db:
@@ -73,6 +101,23 @@ services:
       timeout: 3s
       retries: 30
 
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio-secret
+    ports:
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
 volumes:
   app-db:
   backups:
+  minio-data:

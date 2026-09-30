@@ -1,10 +1,9 @@
-import os
-
-from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+from core.backends import backend_choices, get_backend, is_configured
 
 
 class BackupType(models.Model):
@@ -93,7 +92,7 @@ class StorageType(models.Model):
 
 
 class Storage(models.Model):
-    """Хранилище резервных копий."""
+    """Хранилище резервных копий: запись справочника, указывающая на бэкенд."""
     location = models.CharField(
         verbose_name=_("location"),
         max_length=255
@@ -105,6 +104,14 @@ class Storage(models.Model):
         on_delete=models.CASCADE
     )
 
+    backend = models.CharField(
+        verbose_name=_("backend"),
+        max_length=50,
+        choices=backend_choices,
+        default="local",
+        help_text=_("Where files are written; S3 needs the BACKUP_S3_* settings"),
+    )
+
     class Meta:
         verbose_name = _("storage")
         verbose_name_plural = _("storages")
@@ -112,15 +119,37 @@ class Storage(models.Model):
     def __str__(self):
         return f"{self.location} - {self.type.title}"
 
+    @property
+    def is_available(self):
+        return is_configured(self.backend)
+
+    def open_backend(self):
+        return get_backend(self.backend)
+
 
 class Backup(models.Model):
-    '''
-    Класс реализует резервную копию базы данных.
+    """
+    Резервная копия базы данных и задача на её снятие.
 
-    Пароль от исходной базы намеренно не хранится: он нужен только на время
-    снятия копии, а хранение чужих учётных данных в открытом виде превращает
-    утечку базы приложения в утечку всех подключённых баз.
-    '''
+    Копия проходит статусы «в очереди» → «выполняется» → «готова» или
+    «ошибка». Пароль от исходной базы нужен только воркеру: пока задача
+    ждёт, он лежит в ``secret`` зашифрованным и стирается по её завершении.
+    Хранить его дольше нельзя: утечка базы приложения стала бы утечкой всех
+    подключённых баз.
+    """
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    STATUS_CHOICES = [
+        (QUEUED, _("Queued")),
+        (RUNNING, _("Running")),
+        (SUCCEEDED, _("Ready")),
+        (FAILED, _("Failed")),
+    ]
+    ACTIVE_STATUSES = (QUEUED, RUNNING)
+
     username = models.CharField(
         verbose_name=_("database user"),
         max_length=255
@@ -158,6 +187,55 @@ class Backup(models.Model):
         on_delete=models.CASCADE
     )
 
+    base = models.ForeignKey(
+        "self",
+        verbose_name=_("base backup"),
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="dependents",
+        help_text=_("The backup whose state this delta was compared with"),
+    )
+
+    status = models.CharField(
+        verbose_name=_("status"),
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=QUEUED,
+        db_index=True,
+    )
+
+    error_code = models.CharField(
+        verbose_name=_("error"),
+        max_length=50,
+        blank=True
+    )
+
+    error_detail = models.TextField(
+        verbose_name=_("error details"),
+        blank=True,
+        help_text=_("Technical details for administrators; not shown to users"),
+    )
+
+    secret = models.TextField(
+        verbose_name=_("encrypted password"),
+        blank=True,
+        editable=False,
+    )
+
+    file_name = models.CharField(
+        verbose_name=_("backup file"),
+        max_length=255,
+        blank=True
+    )
+
+    state_name = models.CharField(
+        verbose_name=_("state file"),
+        max_length=255,
+        blank=True,
+        help_text=_("Row hashes that later deltas are compared with"),
+    )
+
     size = models.PositiveBigIntegerField(
         verbose_name=_("file size, bytes"),
         null=True,
@@ -169,6 +247,18 @@ class Backup(models.Model):
         default=timezone.now
     )
 
+    started_at = models.DateTimeField(
+        verbose_name=_("started at"),
+        null=True,
+        blank=True
+    )
+
+    finished_at = models.DateTimeField(
+        verbose_name=_("finished at"),
+        null=True,
+        blank=True
+    )
+
     class Meta:
         verbose_name = _("backup")
         verbose_name_plural = _("backups")
@@ -178,14 +268,12 @@ class Backup(models.Model):
         return f"{self.type.label} — {self.db}@{self.host} ({self.created_at:%Y-%m-%d %H:%M})"
 
     @property
-    def file_name(self):
-        """Имя SQL-файла копии в каталоге ``MEDIA_DIR``."""
-        return f"backup{self.id}"
+    def is_active(self):
+        return self.status in self.ACTIVE_STATUSES
 
     @property
-    def file_path(self):
-        """Полный путь к SQL-файлу копии."""
-        return os.path.join(settings.MEDIA_DIR, f"{self.file_name}.sql")
+    def is_ready(self):
+        return self.status == self.SUCCEEDED and bool(self.file_name)
 
     @property
     def download_name(self):

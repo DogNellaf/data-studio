@@ -1,6 +1,7 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from core.backends import configured_backends
 from core.models import BackupType, Storage
 
 
@@ -51,6 +52,10 @@ class BackupForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Хранилища, бэкенд которых не настроен в этом окружении, не предлагаем.
+        self.fields["storage"].queryset = self.fields["storage"].queryset.filter(
+            backend__in=configured_backends()
+        )
         # По умолчанию предлагаем полную копию: остальные без неё невозможны.
         self.fields["type"].initial = (
             BackupType.objects.filter(code=BackupType.FULL).values_list("pk", flat=True).first()

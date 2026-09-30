@@ -13,12 +13,16 @@
 {% if storages %}
   <div class="table-wrap">
     <table>
-      <thead><tr><th>{% translate "Location" %}</th><th>{% translate "Type" %}</th><th class="num">{% translate "Your backups" %}</th></tr></thead>
+      <thead><tr><th>{% translate "Location" %}</th><th>{% translate "Type" %}</th><th>{% translate "Backend" %}</th><th class="num">{% translate "Your backups" %}</th></tr></thead>
       <tbody>
       {% for storage in storages %}
         <tr>
           <td class="cell-main">{{ storage.location }}</td>
           <td class="cell-sub">{{ storage.type.title }}</td>
+          <td class="cell-sub">
+            {{ storage.get_backend_display }}
+            {% if not storage.is_available %}<span class="status status--failed">{% translate "not configured" %}</span>{% endif %}
+          </td>
           <td class="num">{{ storage.backup_count }}</td>
         </tr>
       {% endfor %}

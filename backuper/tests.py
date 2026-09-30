@@ -1,20 +1,34 @@
+import gzip
+import json
 import os
 import shutil
-import subprocess
 import tempfile
 from unittest.mock import MagicMock, patch
 
 import psycopg2
-from django.test import SimpleTestCase, override_settings
+from django.test import SimpleTestCase
 
+from backuper import utils
 from backuper.utils import (
+    STATE_FORMAT,
+    BackupFailed,
+    Table,
+    _key_match,
+    _literal_list,
     _quote_identifier,
+    _schema_differences,
     _topological_order,
     _upsert_suffix,
-    differential_db_backup,
-    full_db_backup,
-    incremental_db_backup,
+    full_backup,
+    read_state,
 )
+
+
+def make_table(name="users", schema="public", key=("id",), columns=("id", "name")):
+    return Table(
+        oid=1, schema=schema, name=name, columns=list(columns),
+        signature=[f"{c} text" for c in columns], key=list(key),
+    )
 
 
 class HelperTests(SimpleTestCase):
@@ -23,6 +37,19 @@ class HelperTests(SimpleTestCase):
 
     def test_quote_identifier_escapes(self):
         self.assertEqual(_quote_identifier('we"ird'), '"we""ird"')
+
+    def test_literal_list_uses_server_side_quoting(self):
+        self.assertEqual(
+            _literal_list(["id", "name"]),
+            "concat_ws(', ', quote_nullable(t.\"id\"), quote_nullable(t.\"name\"))",
+        )
+
+    def test_key_match_single_and_composite(self):
+        self.assertEqual(_key_match(make_table(), ["'1'", "'2'"]), "(\"id\") IN (('1'), ('2'))")
+        composite = make_table(key=("order_id", "line"))
+        self.assertEqual(
+            _key_match(composite, ["'1', '2'"]), "(\"order_id\", \"line\") IN (('1', '2'))"
+        )
 
     def test_upsert_suffix_updates_non_key_columns(self):
         self.assertEqual(
@@ -49,135 +76,79 @@ class HelperTests(SimpleTestCase):
         self.assertEqual(_topological_order(["a", "b", "c"], parents), ["c", "a", "b"])
 
 
-class MediaDirTestCase(SimpleTestCase):
-    """Базовый класс: временный каталог под резервные копии."""
+class SchemaDifferenceTests(SimpleTestCase):
+    def base(self, *tables):
+        return {f"{t.schema}.{t.name}": {"columns": t.signature} for t in tables}
 
-    def setUp(self):
-        self.media_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, self.media_dir, ignore_errors=True)
-        override = override_settings(MEDIA_DIR=self.media_dir, PG_DUMP_PATH="pg_dump")
-        override.enable()
-        self.addCleanup(override.disable)
+    def test_same_schema(self):
+        table = make_table()
+        self.assertEqual(_schema_differences(self.base(table), [table]), [])
 
-
-class FullDbBackupTests(MediaDirTestCase):
-    @patch("backuper.utils.subprocess.run")
-    def test_success(self, mock_run):
-        result = full_db_backup("127.0.0.1", "5432", "u", "p", "shop", "backup1")
-        self.assertTrue(result)
-        mock_run.assert_called_once()
-        command = mock_run.call_args.args[0]
-        self.assertEqual(command[0], "pg_dump")
-        self.assertIn("--dbname=shop", command)
-        self.assertIn("--no-password", command)
-        self.assertIn("timeout", mock_run.call_args.kwargs)
-        self.assertTrue(command[-1].endswith(os.path.join("backup1.sql")))
-        # пароль передаётся через переменную окружения, а не в командной строке
-        self.assertEqual(mock_run.call_args.kwargs["env"]["PGPASSWORD"], "p")
-
-    @patch("backuper.utils.subprocess.run",
-           side_effect=subprocess.CalledProcessError(1, "pg_dump", stderr="boom"))
-    def test_called_process_error(self, _mock_run):
-        self.assertFalse(full_db_backup("h", "5432", "u", "p", "db", "backup2"))
-
-    @patch("backuper.utils.subprocess.run",
-           side_effect=subprocess.TimeoutExpired("pg_dump", 1))
-    def test_timeout(self, _mock_run):
-        self.assertFalse(full_db_backup("h", "5432", "u", "p", "db", "backup5"))
-
-    @patch("backuper.utils.subprocess.run", side_effect=FileNotFoundError())
-    def test_pg_dump_not_found(self, _mock_run):
-        self.assertFalse(full_db_backup("h", "5432", "u", "p", "db", "backup3"))
-
-    @patch("backuper.utils.subprocess.run", side_effect=ValueError("unexpected"))
-    def test_unexpected_error(self, _mock_run):
-        self.assertFalse(full_db_backup("h", "5432", "u", "p", "db", "backup4"))
-
-
-class ExportChangesTests(MediaDirTestCase):
-    def _make_connection(self, fetch_results):
-        connection = MagicMock()
-        cursor = MagicMock()
-        cursor.fetchall.side_effect = fetch_results
-        connection.cursor.return_value.__enter__.return_value = cursor
-        return connection, cursor
-
-    @patch("backuper.utils.psycopg2.connect")
-    def test_writes_upsert_statements(self, mock_connect):
-        connection, cursor = self._make_connection([
-            [("logs",), ("users",)],                    # список таблиц
-            [],                                         # внешних ключей нет
-            [("id",), ("note",)],                       # колонки logs — без времени
-            [("id",), ("name",), ("updated_at",)],      # колонки users
-            [("id",)],                                  # первичный ключ users
-            [("'1', 'O''Brien', NULL",)],               # изменённые строки users
-        ])
-        mock_connect.return_value = connection
-
-        result = incremental_db_backup(
-            "h", "5432", "u", "p", "db", "2024-01-01 00:00:00", "backup10"
-        )
-        self.assertTrue(result)
-        connection.close.assert_called_once()
-        # все выборки делаются в одном согласованном снимке
-        connection.set_session.assert_called_once_with(
-            isolation_level="REPEATABLE READ", readonly=True
-        )
-
-        with open(os.path.join(self.media_dir, "backup10.sql"), encoding="utf-8") as handle:
-            lines = handle.read().splitlines()
-        self.assertEqual(lines[1], "BEGIN;")
-        self.assertEqual(lines[-1], "COMMIT;")
-        self.assertEqual(lines[2], 'ALTER TABLE "users" DISABLE TRIGGER USER;')
-        self.assertEqual(lines[4], 'ALTER TABLE "users" ENABLE TRIGGER USER;')
+    def test_new_dropped_and_changed_tables(self):
+        users = make_table()
+        changed_users = make_table(columns=("id", "name", "email"))
+        old = make_table(name="old")
+        new = make_table(name="new", schema="billing")
+        differences = _schema_differences(self.base(users, old), [changed_users, new])
         self.assertEqual(
-            lines[3],
-            'INSERT INTO "users" ("id", "name", "updated_at") '
-            "VALUES ('1', 'O''Brien', NULL) "
-            'ON CONFLICT ("id") DO UPDATE SET "name" = EXCLUDED."name", '
-            '"updated_at" = EXCLUDED."updated_at";',
+            differences,
+            ["changed columns in public.users", "dropped table public.old", "new table billing.new"],
         )
-        self.assertNotIn("logs", "\n".join(lines))
-        # фильтр по времени передаётся параметром, а не подставляется в SQL
-        self.assertEqual(cursor.execute.call_args_list[-1].args[1], ("2024-01-01 00:00:00",))
 
+
+class StateFileTests(SimpleTestCase):
+    def setUp(self):
+        self.workdir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.workdir, ignore_errors=True)
+        self.path = os.path.join(self.workdir, "state.json.gz")
+
+    def test_round_trip(self):
+        tables = {"public.users": {"columns": ["id int"], "key": ["id"], "rows": {"'1'": "abc"}}}
+        utils._write_state(self.path, tables)
+        self.assertEqual(read_state(self.path), tables)
+
+    def test_unknown_format_is_rejected(self):
+        with gzip.open(self.path, "wt") as handle:
+            json.dump({"format": STATE_FORMAT + 1, "tables": {}}, handle)
+        with self.assertRaises(BackupFailed) as ctx:
+            read_state(self.path)
+        self.assertEqual(ctx.exception.code, BackupFailed.SCHEMA_CHANGED)
+
+
+class FullBackupFailureTests(SimpleTestCase):
+    params = {"host": "h", "port": 5432, "user": "u", "password": "p", "dbname": "db"}
+
+    @patch("backuper.utils.psycopg2.connect", side_effect=psycopg2.OperationalError("refused"))
+    def test_connection_error(self, _connect):
+        with self.assertRaises(BackupFailed) as ctx:
+            full_backup(self.params, "/tmp/x.sql", "/tmp/x.state")
+        self.assertEqual(ctx.exception.code, BackupFailed.CONNECTION)
+        self.assertIn("refused", ctx.exception.detail)
+
+    @patch("backuper.utils.subprocess.Popen", side_effect=FileNotFoundError())
     @patch("backuper.utils.psycopg2.connect")
-    def test_no_timestamp_columns_writes_empty_transaction(self, mock_connect):
-        connection, _cursor = self._make_connection([
-            [("settings",)],   # одна таблица
-            [],                # внешних ключей нет
-            [("key",)],        # без колонок времени -> пропускается
-        ])
-        mock_connect.return_value = connection
-        result = differential_db_backup(
-            "h", "5432", "u", "p", "db", "2024-01-01 00:00:00", "backup11"
-        )
-        self.assertTrue(result)
-        with open(os.path.join(self.media_dir, "backup11.sql"), encoding="utf-8") as handle:
-            lines = handle.read().splitlines()
-        self.assertTrue(lines[0].startswith("-- DataStudio"))
-        self.assertEqual(lines[1:], ["BEGIN;", "COMMIT;"])
+    def test_missing_pg_dump(self, connect, _popen):
+        cursor = connect.return_value.cursor.return_value.__enter__.return_value
+        cursor.fetchone.return_value = ("snapshot-1",)
+        with self.assertRaises(BackupFailed) as ctx:
+            full_backup(self.params, "/tmp/x.sql", "/tmp/x.state")
+        self.assertEqual(ctx.exception.code, BackupFailed.DUMP)
+        connect.return_value.close.assert_called_once()
 
-    @patch("backuper.utils.psycopg2.connect",
-           side_effect=psycopg2.OperationalError("cannot connect"))
-    def test_connection_failure_returns_false(self, _mock_connect):
-        """Регрессия: при сбое connect() блок finally не должен падать с NameError."""
-        self.assertFalse(
-            incremental_db_backup("h", "5432", "u", "p", "db", "t", "backup12")
-        )
-
-
-class DelegationTests(SimpleTestCase):
-    @patch("backuper.utils._export_changes_since", return_value=True)
-    def test_incremental_delegates(self, mock_export):
-        self.assertTrue(
-            incremental_db_backup("h", "5432", "u", "p", "db", "ts", "name")
-        )
-        mock_export.assert_called_once_with("h", "5432", "u", "p", "db", "ts", "name")
-
-    @patch("backuper.utils._export_changes_since", return_value=True)
-    def test_differential_delegates(self, mock_export):
-        self.assertTrue(
-            differential_db_backup("h", "5432", "u", "p", "db", "ts", "name")
-        )
-        mock_export.assert_called_once_with("h", "5432", "u", "p", "db", "ts", "name")
+    @patch("backuper.utils.subprocess.Popen")
+    @patch("backuper.utils.psycopg2.connect")
+    def test_pg_dump_gets_snapshot_and_password_via_environment(self, connect, popen):
+        cursor = connect.return_value.cursor.return_value.__enter__.return_value
+        cursor.fetchone.return_value = ("snapshot-1",)
+        popen.return_value = MagicMock(returncode=1)
+        popen.return_value.communicate.return_value = ("", "boom")
+        popen.return_value.poll.return_value = 1
+        with patch("backuper.utils._discover_tables", return_value=[]):
+            with self.assertRaises(BackupFailed) as ctx:
+                full_backup(self.params, "/tmp/x.sql", "/tmp/x.state")
+        self.assertEqual(ctx.exception.detail, "boom")
+        command = popen.call_args.args[0]
+        self.assertIn("--snapshot=snapshot-1", command)
+        self.assertIn("--no-password", command)
+        self.assertNotIn("p", " ".join(command).split())
+        self.assertEqual(popen.call_args.kwargs["env"]["PGPASSWORD"], "p")

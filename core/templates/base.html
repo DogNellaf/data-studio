@@ -8,6 +8,7 @@
   <meta name="description" content="{% translate 'DataStudio backs up PostgreSQL databases: full, incremental and differential backups.' %}">
   <link rel="icon" href="{% static 'core/favicon.svg' %}" type="image/svg+xml">
   <link rel="stylesheet" href="{% static 'core/app.css' %}">
+  {% block head %}{% endblock %}
 </head>
 <body>
 {% block body %}
