@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%E2%80%933.12-3776AB)
 ![Django](https://img.shields.io/badge/django-5.2-092E20)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-16%20%7C%2017-4169E1)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange)
 
 Веб-приложение для резервного копирования баз данных PostgreSQL. Полные копии
 создаются утилитой `pg_dump`, инкрементальные и дифференциальные строятся
@@ -296,4 +296,8 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
 
 ## Лицензия
 
-[MIT](LICENSE)
+[PolyForm Noncommercial 1.0.0](LICENSE). Использование, изменение и
+распространение разрешены в любых некоммерческих целях при сохранении указания
+`Copyright (c) 2026 DogNellaf`. Коммерческое использование допускается только
+по отдельной лицензии; для согласования следует связаться с
+[DogNellaf](https://github.com/DogNellaf).

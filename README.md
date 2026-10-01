@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%E2%80%933.12-3776AB)
 ![Django](https://img.shields.io/badge/django-5.2-092E20)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-16%20%7C%2017-4169E1)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange)
 
 A web app for backing up PostgreSQL databases. It takes full backups with
 `pg_dump` and incremental and differential backups on top of them, including
@@ -282,4 +282,7 @@ that turns a delta into a full backup
 
 ## License
 
-[MIT](LICENSE)
+[PolyForm Noncommercial 1.0.0](LICENSE). Use, modification and
+redistribution are allowed for any noncommercial purpose, provided the notice
+`Copyright (c) 2026 DogNellaf` is kept. Commercial use requires a separate
+license; contact [DogNellaf](https://github.com/DogNellaf).

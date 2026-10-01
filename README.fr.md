@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%E2%80%933.12-3776AB)
 ![Django](https://img.shields.io/badge/django-5.2-092E20)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-16%20%7C%2017-4169E1)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange)
 
 Une application web de sauvegarde de bases PostgreSQL : sauvegardes complètes
 avec `pg_dump`, puis incrémentales et différentielles par-dessus, lignes
@@ -298,4 +298,8 @@ compris un changement de schéma qui transforme un delta en sauvegarde complète
 
 ## Licence
 
-[MIT](LICENSE)
+[PolyForm Noncommercial 1.0.0](LICENSE). L’utilisation, la modification
+et la redistribution sont autorisées à toute fin non commerciale, à condition de
+conserver la mention `Copyright (c) 2026 DogNellaf`. Toute utilisation
+commerciale nécessite une licence distincte ; contactez
+[DogNellaf](https://github.com/DogNellaf).

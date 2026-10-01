@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/python-3.10%E2%80%933.12-3776AB)
 ![Django](https://img.shields.io/badge/django-5.2-092E20)
 ![PostgreSQL](https://img.shields.io/badge/postgresql-16%20%7C%2017-4169E1)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange)
 
 Eine Webanwendung zur Sicherung von PostgreSQL-Datenbanken: Vollsicherungen mit
 `pg_dump` und darauf aufbauend inkrementelle und differenzielle Sicherungen,
@@ -297,4 +297,8 @@ eine Vollsicherung entsteht ([`docker/smoke_test.py`](docker/smoke_test.py)).
 
 ## Lizenz
 
-[MIT](LICENSE)
+[PolyForm Noncommercial 1.0.0](LICENSE). Nutzung, Änderung und
+Weitergabe sind für alle nicht kommerziellen Zwecke erlaubt, sofern der Hinweis
+`Copyright (c) 2026 DogNellaf` erhalten bleibt. Für die kommerzielle Nutzung ist
+eine gesonderte Lizenz erforderlich; Kontakt:
+[DogNellaf](https://github.com/DogNellaf).
