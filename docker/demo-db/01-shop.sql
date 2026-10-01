@@ -37,7 +37,7 @@ CREATE TABLE order_items (
     PRIMARY KEY (order_id, product_id)
 );
 
--- Справочник без колонок времени: изменения в нём дельты тоже видят.
+-- Справочник без колонок времени: изменения справочника также попадают в дельты.
 CREATE TABLE settings (
     key    text PRIMARY KEY,
     value  text NOT NULL
