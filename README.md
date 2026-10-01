@@ -258,7 +258,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-There are 131 tests with 97% coverage; S3 is tested against moto. CI also
+There are 133 tests with 97% coverage; S3 is tested against moto. CI also
 starts PostgreSQL 16 for the integration tests and, after building the image,
 brings up the whole compose stack and takes full and incremental backups
 through the worker into both local disk and S3 (SeaweedFS), including a schema change

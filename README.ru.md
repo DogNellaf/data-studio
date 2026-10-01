@@ -261,7 +261,7 @@ INTEGRATION_DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
   coverage run manage.py test --settings=datastudio.settings_test && coverage report
 ```
 
-131 тест, покрытие 97%; S3 проверяется на moto. CI поднимает PostgreSQL 16
+133 теста, покрытие 97%; S3 проверяется на moto. CI поднимает PostgreSQL 16
 для интеграционных тестов, а после сборки образа запускает весь стек из
 compose и снимает полные и инкрементальные копии через воркер и на локальный
 диск, и в S3 (SeaweedFS), включая изменение схемы, после которого вместо дельты
